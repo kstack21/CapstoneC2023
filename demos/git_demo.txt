@@ -18,9 +18,14 @@ git commit -m "Description of changes"
 ## Push changes
 git push origin [Branch name]
 
+# Compare and pull requests
+https://github.com/kstack21/CapstoneC2023
 
 
 
+OTHER COMMANDS 
+# Check where you are at
+git status
 
 # Look history of changes
 git log
