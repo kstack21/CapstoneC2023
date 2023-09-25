@@ -1,6 +1,9 @@
 All the commands are to be used in the terminal
 The commands are in the order of an average workflow
 
+# Check where you are at
+git status
+
 # Go to main branch
 git checkout main
 
@@ -22,10 +25,10 @@ git push origin [Branch name]
 https://github.com/kstack21/CapstoneC2023
 
 
-
 OTHER COMMANDS 
-# Check where you are at
-git status
 
 # Look history of changes
 git log
+
+# Undo
+git revert [Commit ID]
