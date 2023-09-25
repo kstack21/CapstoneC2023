@@ -1,0 +1,26 @@
+All the commands are to be used in the terminal
+The commands are in the order of an average workflow
+
+# Go to main branch
+git checkout main
+
+# Update new changes made by others
+git pull origin main
+
+# Create new branch
+git checkout -b [Branch name]
+
+# Save changes. You can use these commands or the buttons on the left.
+## Save changes locally:
+git add .
+## Commit changes:
+git commit -m "Description of changes"
+## Push changes
+git push origin [Branch name]
+
+
+
+
+
+# Look history of changes
+git log
