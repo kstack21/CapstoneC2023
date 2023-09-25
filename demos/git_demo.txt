@@ -15,8 +15,10 @@ git checkout -b [Branch name]
 git add .
 ## Commit changes:
 git commit -m "Description of changes"
+## Push changes
+git push origin [Branch name]
 
-git push
+
 
 
 
