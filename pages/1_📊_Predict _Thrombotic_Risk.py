@@ -16,4 +16,4 @@ st.markdown("""This page should be where users can input patient
 
 
 # Side bar layout
-st.sidebar.file_uploader("Upload file X")
+st.sidebar.file_uploader("Upload Patient Data and Usable Model")
