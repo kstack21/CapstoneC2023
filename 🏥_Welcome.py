@@ -1,6 +1,7 @@
 # TO RUN: streamlit run 🏥_Welcome.py
 
 import streamlit as st
+import pandas as pd 
 
 st.set_page_config(
     page_title="Welcome and Instructions",
@@ -8,7 +9,6 @@ st.set_page_config(
 )
 
 st.title("Welcome to [App name]! 👋")
-
 
 st.markdown(
     """

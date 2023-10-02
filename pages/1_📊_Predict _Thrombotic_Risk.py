@@ -19,6 +19,7 @@ st.markdown("Patient data demographics overview:")
 
 
 # Side bar layout
+
 uploaded_file = st.sidebar.file_uploader("Upload a file", type=["csv", "xlsx"])
 st.write(type(uploaded_file))
 if uploaded_file != None:
@@ -39,3 +40,6 @@ df = pd.DataFrame(prediction)
 st.write("Total number of patients: ", len(df))
 st.write("Average patient age: ", df['Age'].mean())
 st.write("Percent of white patients: ", (df[df.White == 1].shape[0])/len(df) * 100, "%")
+
+st.sidebar.file_uploader("Upload Patient Data and Usable Model")
+
