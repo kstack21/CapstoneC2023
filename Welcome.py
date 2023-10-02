@@ -1,4 +1,4 @@
-# TO RUN: streamlit run 🏥_Welcome.py
+# TO RUN: streamlit run Welcome.py
 
 import streamlit as st
 import pandas as pd 

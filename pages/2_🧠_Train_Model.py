@@ -3,8 +3,28 @@ import pandas as pd
 import os
 import plotly.express as px
 
+#--------------------------Helper functions--------------------------#
+def path_back_to(new_folder_name):
+    # Get the directory name of the provided path
+    directory_name = os.path.dirname(__file__)
 
+    # Split the directory path into components
+    directory_components = directory_name.split(os.path.sep)
 
+    # Remove the last folder 
+    if directory_components[-1]:
+        directory_components.pop()
+
+    # Add the new folder to the path
+    for file in new_folder_name:
+        directory_components.append(file)
+
+    # Join the modified components to create the new path
+    new_path = os.path.sep.join(directory_components)
+
+    return new_path
+
+#--------------------------Page description--------------------------#
 st.set_page_config(
     page_title="Train Model",
     page_icon="🧠",
@@ -17,9 +37,26 @@ st.markdown("""This page is for administrators who want to retrain the model
             It can provide options for uploading new data, 
             selecting model algorithms, and adjusting training settings. """)
 
+#--------------------------Data description--------------------------#
 
+# Get file path of data 
+data_path = path_back_to(["data", "DummyData.xlsx"])
+
+# Show table
+prediction = pd.read_excel(data_path)
+st.table(prediction)
+#data = uploaded_file.getvalue()
+
+# Find patient dataset stats
+df = pd.DataFrame(prediction)
+st.write("Total number of patients: ", len(df))
+st.write("Average patient age: ", df['Age'].mean())
+st.write("Percent of white patients: ", (df[df.White == 1].shape[0])/len(df) * 100, "%")
+
+#--------------------------Parameters--------------------------#
 # Radio button widget
 st.subheader("Selection of Highly Correlated Paramters")
+
 #percentages should turn into variables pulled from the model
 radio_pivpa = st.radio("Choose one parameter", ["Platlet Inhibition (75%)", "Platelet Aggregation (76%)"])
 
@@ -28,22 +65,19 @@ radio_gvs=st.radio("Chose one parameter", ["Gender (50%)","Smoking (85%)"])
 
 st.write(f"You selected: {radio_pivpa} and {radio_gvs}")
 
-#PREDICTION
-# Get data from folder
-path_pages = os.path.dirname(__file__)
-path_pages = path_pages.replace("/pages", "")
-data_path = os.path.join(path_pages, "data", "DummyResult.xlsx")
 
-# Get 10 most influencial elements
-prediction = pd.read_excel(data_path)
-prediction = prediction.T.squeeze()
-largest_contributor = prediction.nlargest(n=10, keep='first')
-largest_contributor = pd.DataFrame({'Category': largest_contributor.index, 'Value': largest_contributor.values})
-
-# Plot pie chart
-fig = px.pie(largest_contributor, names='Category', values='Value', title='Parameters contribution to risk')
-st.plotly_chart(fig, use_container_width=True)
+#--------------------------Model performance--------------------------#
 
 
-# Side bar layout
+#--------------------------Side bar--------------------------#
+# Upload data set
 st.sidebar.file_uploader("Upload Data Set")
+
+# Test parameters
+st.sidebar.button("Test parameters")
+
+# Train and validate model
+st.sidebar.button("Train and validate")
+
+# Download 
+st.sidebar.button("Download")
