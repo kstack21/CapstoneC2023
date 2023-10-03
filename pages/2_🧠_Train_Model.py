@@ -53,6 +53,7 @@ st.write("Total number of patients: ", len(df))
 st.write("Average patient age: ", df['Age'].mean())
 st.write("Percent of white patients: ", (df[df.White == 1].shape[0])/len(df) * 100, "%")
 
+st.bar_chart(df, x = "White")
 #--------------------------Parameters--------------------------#
 # Radio button widget
 st.subheader("Selection of Highly Correlated Paramters")
