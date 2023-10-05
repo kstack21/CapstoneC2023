@@ -108,3 +108,21 @@ st.sidebar.button("Train and validate")
 
 # Download 
 st.sidebar.button("Download")
+
+
+# Side bar layout
+upload_file = st.sidebar.file_uploader("Upload Model") #Creates sidebar button for model upload
+if upload_file is not None: # Checks for upload, Runs if a file is uploaded
+    st.write("Model Uploaded Successfully") # indicates to user that Model File was uploaded
+    st.write("Displaying Model") # Text that indicates Model is Being displayed 
+    df = pd.DataFrame()
+
+# The following line is where we will try to display the uploaded model
+   # df = pd.DataFrame(np) 
+
+upload_file = st.sidebar.file_uploader("Upload Patient Data") #creates button for Uploading Patient Data
+if upload_file is not None:
+    st.write("Patient Data Uploaded Successfully") # Creates text to notify user Patient Data has been uploaded
+
+if st.sidebar.button("Export"): # Creates a button that states EXPORT, but what will export be 
+    st.write("I AM LOSING MY SANITY") #output for button press 
