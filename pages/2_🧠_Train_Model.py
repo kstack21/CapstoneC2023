@@ -11,6 +11,13 @@ current_directory = os.path.dirname(os.path.abspath(__file__))
 parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
 from functions import path_back_to, data_demographics_fig, describe_dataframe
+from preprocessing import preprocess
+
+#--------------------------Functions--------------------------#
+@st.cache_data
+def pre_process_df(df):
+    df = preprocess(df)
+    return df
 
 #--------------------------Page description--------------------------#
 st.set_page_config(
@@ -28,7 +35,7 @@ st.markdown("""This page allows user to train a model
 #--------------------------Data description--------------------------#
 
 # Get file path of data DUMMY
-data_path = path_back_to(["data", "DummyData.xlsx"])
+data_path = path_back_to(["data", "DummyData_Extended.xlsx"])
 df = pd.read_excel(data_path)
 
 st.header("Data description")
@@ -44,9 +51,12 @@ st.table(numerical)
 st.subheader("Analysis of categorical values")
 st.table(categorical)
 
-
-
 #--------------------------Parameters--------------------------#
+# Preprocess data
+df = pre_process_df(df)
+
+# Make models to find contribution of each parameter
+
 # Radio button widget
 st.subheader("Selection of Highly Correlated Paramters")
 
