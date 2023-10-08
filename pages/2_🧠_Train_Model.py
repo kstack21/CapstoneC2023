@@ -1,30 +1,16 @@
 import streamlit as st
 import pandas as pd
-import os
 import plotly.express as px
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
+import sys
+import os
 
-#--------------------------Helper functions--------------------------#
-def path_back_to(new_folder_name):
-    # Get the directory name of the provided path
-    directory_name = os.path.dirname(__file__)
-
-    # Split the directory path into components
-    directory_components = directory_name.split(os.path.sep)
-
-    # Remove the last folder 
-    if directory_components[-1]:
-        directory_components.pop()
-
-    # Add the new folder to the path
-    for file in new_folder_name:
-        directory_components.append(file)
-
-    # Join the modified components to create the new path
-    new_path = os.path.sep.join(directory_components)
-
-    return new_path
+# Get higher level functions
+current_directory = os.path.dirname(os.path.abspath(__file__))
+parent_directory = os.path.dirname(current_directory)
+sys.path.append(parent_directory)
+from functions import path_back_to
 
 #--------------------------Page description--------------------------#
 st.set_page_config(
