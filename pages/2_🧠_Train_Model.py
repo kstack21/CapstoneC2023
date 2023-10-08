@@ -10,7 +10,7 @@ import os
 current_directory = os.path.dirname(os.path.abspath(__file__))
 parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
-from functions import path_back_to
+from functions import path_back_to, data_demographics_fig, describe_dataframe
 
 #--------------------------Page description--------------------------#
 st.set_page_config(
@@ -19,52 +19,32 @@ st.set_page_config(
 )
 
 # Main layout
-st.title("Page title")
-st.markdown("""This page is for administrators who want to retrain the model 
-            or fine-tune its parameters. 
-            It can provide options for uploading new data, 
+st.title("Train model")
+st.markdown("""This page allows user to train a model 
+            and fine-tune its parameters. 
+            It provides options for uploading new data, 
             selecting model algorithms, and adjusting training settings. """)
 
 #--------------------------Data description--------------------------#
 
-# Get file path of data 
+# Get file path of data DUMMY
 data_path = path_back_to(["data", "DummyData.xlsx"])
+df = pd.read_excel(data_path)
 
-# Show table
-prediction = pd.read_excel(data_path)
-st.table(prediction)
-#data = uploaded_file.getvalue()
+st.header("Data description")
 
-# Find patient dataset stats
-df = pd.DataFrame(prediction)
-st.write("Total number of patients: ", len(df))
-st.write("Average patient age: ", df['Age'].mean())
-st.write("Percent of white patients: ", (df[df.White == 1].shape[0])/len(df) * 100, "%")
-
-# Make pie subplots
-fig = make_subplots(2, 2, specs=[[{'type':'domain'}, {'type':'domain'}],[{'type':'xy'}, {'type':'xy'}]],
-                    subplot_titles=['Gender Distribution', 'Ethnicity Distribution','Age', 'BMI'])
-
-# Count binary values in the "Male" column
-male_counts = df['Male'].value_counts()
-male_labels = ['Male' if male_counts.index[0] else 'Female', 'Male' if not male_counts.index[0] else 'Female']
-# Create a pie chart for "Male"
-fig.add_trace(go.Pie(labels=male_labels, values=male_counts), row=1, col=1)
-
-# Count binary values in the "White" column
-white_counts = df['White'].value_counts()
-white_labels = ['White' if white_counts.index[0] else 'Non-White', 'White' if not white_counts.index[0] else 'Non-White']
-# Create a pie chart for "White"
-fig.add_trace(go.Pie(labels=white_labels, values=white_counts), row=1, col=2)
-
-# Age histogram
-fig.add_trace(go.Histogram(x=df["Age"], name="Age"), row=2, col=1)
-
-# BMI histogram
-fig.add_trace(go.Histogram(x=df["BMI"], name="BMI"), row=2, col=2)
-
-# Display histrograms
+# Show data demographics
+fig = data_demographics_fig(df)
 st.plotly_chart(fig, use_container_width=True)
+
+# Show data description
+numerical, categorical = describe_dataframe(df)
+st.subheader("Analysis of numerical values")
+st.table(numerical)
+st.subheader("Analysis of categorical values")
+st.table(categorical)
+
+
 
 #--------------------------Parameters--------------------------#
 # Radio button widget
