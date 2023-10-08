@@ -20,6 +20,8 @@ for column in df.columns:
         data_types[column] = 'integer'
     elif df[column].dtype == 'float64':
         data_types[column] = 'float'
+    elif df[column].dtype == 'datetime64':
+        data_types[column] = 'date'  # Identify datetime columns
 
 # Create a list to store the new data
 new_data_rows = []
@@ -44,11 +46,15 @@ for _ in range(num_new_rows):
             min_val = df[column].min()
             max_val = df[column].max()
             new_row[column] = random.uniform(min_val, max_val)
+        elif data_type == 'date':
+            # For datetime columns, generate a random date within a specified range
+            start_date = df[column].min()
+            end_date = df[column].max()
+            new_row[column] = fake.date_between(start_date=start_date, end_date=end_date)
     new_data_rows.append(new_row)
 
 # Convert the list of new data rows to a DataFrame
 result_df = pd.DataFrame(new_data_rows, columns=df.columns)
-
 
 # Save the combined data to a new Excel file
 output_file = './data/DummyData_Extended.xlsx'
