@@ -7,6 +7,7 @@ import pandas as pd
 import os
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
+from sklearn.preprocessing import RobustScaler
 
 def path_back_to(new_folder_name):
     """
@@ -160,3 +161,31 @@ def describe_dataframe(df):
     categorical_analysis.index = ['Count', 'Unique', 'Top', 'Freq', 'Values']
 
     return numerical_and_dates_analysis, categorical_analysis
+
+
+def scale_features(df):
+    """
+    Scales specified numerical features using RobustScaler,
+    making them robust to outliers.
+    """
+    # Specify the columns to be encoded robustly
+    columns_to_scale = [
+        'Age', 'BMI', 'HbA1c Baseline', 'EGFR (mL/min/1.73m²)',
+        'ABI Right', 'ABI Left', 'NAPT', 'MAPT', 'DAPT',
+        'Reaction Time (R) in min', 'Lysis at 30 min (LY30) in %',
+        'CRT Max amplitude (MA) in mm', 'CFF Max Amplitude (MA) in mm',
+        'HKH MA (mm)', 'ActF MA (mm)', 'ADP MA (mm)', 'AA MA (mm)',
+        'ADP % Aggregation', 'ADP % Inhibition', 'AA % Aggregation',
+        'AA % Inhibition', 'CK R (min)', 'CK K (min)', 'CK angle (deg)',
+        'CK MA (mm)', 'CRT MA (mm)', 'CKH R (min)', 'CFF MA (mm)',
+        'CFF FLEV (mg/dL)'
+    ]
+
+    # Initialize the RobustScaler
+    scaler = RobustScaler()
+
+    # Fit and transform the selected columns
+    df[columns_to_scale] = scaler.fit_transform(df[columns_to_scale])
+
+    return df
+
