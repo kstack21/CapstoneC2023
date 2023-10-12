@@ -42,8 +42,6 @@ st.markdown("Patient data demographics overview:")
 #--------------------------Model info--------------------------#
 
 
-#--------------------------Patient info--------------------------#
-
 #--------------------------Prediction--------------------------#
 # Get data from folder
 data_path = path_back_to(["data","DummyResult.xlsx"])
@@ -71,3 +69,75 @@ if uploaded_file != None:
 # Download 
 st.sidebar.button("Export results")
 
+#--------------------------Patient info--------------------------#
+# Get data from folder
+data_path = path_back_to(["data","DummyResult.xlsx"])
+
+
+## Patient 0 Header ##
+c1, c2, c3 = st.columns(3)
+with c2:
+    st.header(':red[Patient 0]')
+
+# Organizing text in columns
+col1, col2, col3 = st.columns(3)
+
+# Present General Patient Info
+with col1:
+    st.metric(label="Age", value=45)
+    st.metric(label="Tobacco Use", value="Low")
+    st.metric(label="Hypertension", value="Yes")
+with col2:
+    st.metric(label="Sex", value="Male")
+    st.metric(label="Race", value="White")
+    st.metric(label="Clotting Disorder", value="No")
+with col3:
+    st.metric(label="Affected Artery", value="Tibial")
+    st.metric(label="BMI", value=28.5)
+    st.metric(label="Diabetes", value="No")
+
+
+## Patient 1 Header ##
+c1, c2, c3 = st.columns(3)
+with c2:
+    st.header(':red[Patient 1]')
+
+# Organizing text in columns
+col1, col2, col3 = st.columns(3)
+
+# Present General Patient Info
+with col1:
+    st.metric(label="Age", value=62)
+    st.metric(label="Tobacco Use", value="Medium")
+    st.metric(label="Hypertension", value="No")
+with col2:
+    st.metric(label="Sex", value="Female")
+    st.metric(label="Race", value="White")
+    st.metric(label="Clotting Disorder", value="Yes")
+with col3:
+    st.metric(label="Affected Artery", value="Femoral")
+    st.metric(label="BMI", value=32.1)
+    st.metric(label="Diabetes", value="Yes")
+
+
+## Patient 2 Header ##
+c1, c2, c3 = st.columns(3)
+with c2:
+    st.header(':red[Patient 2]')
+
+# Organizing text in columns
+col1, col2, col3 = st.columns(3)
+
+# Present General Patient Info
+with col1:
+    st.metric(label="Age", value=57)
+    st.metric(label="Tobacco Use", value="High")
+    st.metric(label="Hypertension", value="Yes")
+with col2:
+    st.metric(label="Sex", value="Male")
+    st.metric(label="Race", value="Not White")
+    st.metric(label="Clotting Disorder", value="No")
+with col3:
+    st.metric(label="Affected Artery", value="Tibial")
+    st.metric(label="BMI", value=25.8)
+    st.metric(label="Diabetes", value="No")
