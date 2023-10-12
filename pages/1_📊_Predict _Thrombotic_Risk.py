@@ -2,33 +2,20 @@ import streamlit as st
 import pandas as pd
 import os
 import plotly.express as px
+import sys
 
-#--------------------------Helper functions--------------------------#
-def path_back_to(new_folder_name):
-    # Get the directory name of the provided path
-    directory_name = os.path.dirname(__file__)
+# Get higher level functions
+current_directory = os.path.dirname(os.path.abspath(__file__))
+parent_directory = os.path.dirname(current_directory)
+sys.path.append(parent_directory)
+from functions import path_back_to
 
-    # Split the directory path into components
-    directory_components = directory_name.split(os.path.sep)
-
-    # Remove the last folder 
-    if directory_components[-1]:
-        directory_components.pop()
-
-    # Add the new folder to the path
-    for file in new_folder_name:
-        directory_components.append(file)
-
-    # Join the modified components to create the new path
-    new_path = os.path.sep.join(directory_components)
-
-    return new_path
+#--------------------------Page description--------------------------#
 st.set_page_config(
     page_title="Predict Thrombotic Risk",
     page_icon="📊",
 )
 
-#--------------------------Page description--------------------------#
 # Main layout
 st.title("Page title")
 st.markdown("""This page should be where users can input patient 
