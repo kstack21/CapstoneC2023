@@ -36,17 +36,16 @@ def cached_generate_model(df):
     best_model, best_scaler = generate_model(df)
     return best_model, best_scaler
 
-@st.cache_data
-def cached_model_explainer(model, X_test):
-    # Create an explainer
-    explainer = shap.Explainer(model)
+# @st.cache_data
+# def cached_model_explainer(_model, X_test):
+#     # Create an explainer
+#     explainer = shap.Explainer(_model)
 
-    # Calculate Shapley values for a specific instance or a set of instances
-    shap_values = explainer(X_test)
+#     # Calculate Shapley values for a specific instance or a set of instances
+#     shap_values = explainer(X_test)
 
-    # Plot summary Shapley values
-    shap.summary_plot(shap_values, X_test)
-    return shap_values
+    
+#     return shap_values
 
 
 #--------------------------Page description--------------------------#
@@ -96,16 +95,22 @@ if uploaded_file is not None:
     st.table(categorical)
 
     #--------------------------Parameters--------------------------#
-
-
     # Preprocess data
     df = cached_preprocess(df)
 
     # Make models to find contribution of each parameter
-    best_model, best_scaler = generate_model(df)
-
+    best_model, X_test, y_test = generate_model(df)
     model = best_model.named_steps['classifier']
-    st.write(model.feature_importances_)
+
+    # Get feature importance by weight
+    feature_importance = model.get_booster().get_score(importance_type='weight')
+
+    # Sort the feature importance dictionary by weight
+    #feature_importance = dict(sorted(feature_importance.items(), key=lambda item: item[1], reverse=True))
+
+    # Print or use the feature importance
+    st.write(feature_importance)
+
 
 # # Radio button widget
 # st.subheader("Selection of Highly Correlated Paramters")
