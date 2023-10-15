@@ -99,11 +99,9 @@ if uploaded_file is not None:
     df = cached_preprocess(df)
 
     # Make models to find contribution of each parameter
-    best_model, X_test, y_test = generate_model(df)
-    model = best_model.named_steps['classifier']
+    best_model, best_params, accuracy, X_train = generate_model(df)
+    
 
-    # Get feature importance by weight
-    feature_importance = model.get_booster().get_score(importance_type='weight')
 
     # Sort the feature importance dictionary by weight
     #feature_importance = dict(sorted(feature_importance.items(), key=lambda item: item[1], reverse=True))

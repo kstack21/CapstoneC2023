@@ -1,0 +1,25 @@
+[
+    [
+        "HKH MA (mm)", 
+        "ActF MA (mm)",
+        "ADP MA (mm)"
+    ], 
+    [
+        "ActF MA (mm)", 
+        "CFF Max Amplitude (MA) in mm", 
+        "CFF FLEV(mg/dl)"
+    ],
+    [
+        "HKH MA (mm)", 
+        "CKH Max Amplitude (MA) in mm"
+    ],
+    [
+        "CRT MA (mm)", 
+        "CK MA(mm)", 
+        "ADP MA(mm)"
+    ], 
+    [
+        "CK R(min)", 
+        "CKH R(min)"
+    ]
+]
