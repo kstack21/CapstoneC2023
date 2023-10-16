@@ -189,3 +189,40 @@ def scale_features(df):
 
     return df
 
+def feature_importance (pipeline, X_train):
+    """
+    Calculate feature importance for an XGBoost model within a given pipeline.
+
+    Parameters:
+        pipeline (sklearn.pipeline.Pipeline): A scikit-learn pipeline containing an XGBoost classifier.
+        X_train (pd.DataFrame): The training data used to train the model.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing feature names, importance scores, and their percentage contributions.
+
+    This function calculates feature importance for an XGBoost model within a given scikit-learn pipeline.
+    It retrieves the feature importances, feature names, and computes the percentage contribution of each feature to the model's predictions.
+
+    The returned DataFrame is sorted in descending order of importance, making it easy to identify the most influential features in the model.
+    """
+    
+    # Get feature importances from the XGBoost model in the pipeline
+    importances = pipeline.named_steps['classifier'].feature_importances_
+
+    # Get the feature names from the original DataFrame
+    feature_names = X_train.columns
+
+    # Calculate the total importance
+    total_importance = importances.sum()
+
+    # Calculate the percentage of contribution for each feature
+    percentage_contributions = (importances / total_importance) * 100
+
+    # Create a DataFrame to store feature names, importance scores, and percentage contributions
+    feature_importance_df = pd.DataFrame({'Feature': feature_names, 'Importance': importances, 'Percentage Contribution': percentage_contributions})
+
+    # Sort the features by importance in descending order
+    feature_importance_df = feature_importance_df.sort_values(by='Importance', ascending=False)
+
+    # return the DataFrame with feature names, importance scores, and percentage contributions
+    return feature_importance_df

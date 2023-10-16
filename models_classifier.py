@@ -1,116 +1,104 @@
+import xgboost as xgb
 import pandas as pd
-from sklearn.model_selection import train_test_split, KFold, GridSearchCV
-from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-from xgboost import XGBClassifier
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split, KFold, GridSearchCV, RandomizedSearchCV
+from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import RobustScaler
 from sklearn.pipeline import Pipeline
 
+def generate_model(df):
+    """
+    Generate and evaluate an XGBoost machine learning model with hyperparameter tuning.
 
-# Load your dataset
-data_path = "./data/Preprocessed_Data.xlsx"
-df = pd.read_excel(data_path)
+    This function takes a pandas DataFrame as input, splits it into features and target, creates an XGBoost classifier,
+    performs feature scaling using RobustScaler, and sets up a pipeline for hyperparameter tuning.
+    It then conducts K-Fold cross-validation with randomized hyperparameter search to find the best model.
 
+    Parameters:
+    - df (pd.DataFrame): The input pandas DataFrame containing your dataset, including features and target.
 
-# Separate features (X) and target (y)
-X = df.drop(labels=['Upcoming_event','Record ID','Date of Procedure','Date of Blood Draw'], axis=1)
-y = df['Upcoming_event']
+    Returns:
+    - best_model (sklearn.pipeline.Pipeline): The best machine learning model found after hyperparameter tuning.
+    - best_params (dict): The best hyperparameters for the model.
+    - accuracy (float): The accuracy score of the best model on a hold-out test set.
 
-# Split data into training and test sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    Example usage:
+    best_model, best_params, accuracy = generate_model(df)
 
-# Define models
-models = {
-    'Gradient Boosting': GradientBoostingClassifier(),
-    'Random Forest': RandomForestClassifier(),
-    'XGBoost': XGBClassifier()
-}
+    Note:
+    1. Ensure that the target column is named 'Upcoming_event' in your input DataFrame.
+    2. You can adjust the hyperparameter grid (param_dist) to suit your specific problem.
 
-# Define hyperparameter grids for tuning (adjust as needed)
-param_grids = {
-    'Random Forest': {
-        # The number of decision trees in the forest.
-        'classifier__n_estimators': [100, 200, 300],
-        # # The maximum depth of each decision tree in the forest.
-        # 'classifier__max_depth': [None, 10, 20],
-        # # The minimum number of samples required to split an internal node.
-        # 'classifier__min_samples_split': [2, 5, 10],
-        # # The minimum number of samples required to be in a leaf node.
-        # 'classifier__min_samples_leaf': [1, 2, 4],
-        # # The number of features to consider when looking for the best split.
-        # 'classifier__max_features': ['auto', 'sqrt', 'log2'],
-        # # Whether to use bootstrap samples when building trees.
-        # 'classifier__bootstrap': [True, False]
-    },
-    'XGBoost': {
-        # The number of boosting rounds (trees) to be used in the ensemble.
-        'classifier__n_estimators': [100, 200, 300],
-        # # The maximum depth of each tree in the ensemble.
-        # 'classifier__max_depth': [3, 4, 5],
-        # # The step size shrinkage to reduce overfitting.
-        # 'classifier__learning_rate': [0.1, 0.01, 0.001],
-        # # The fraction of samples used for training each tree.
-        # 'classifier__subsample': [0.8, 0.9, 1.0],
-        # # The fraction of features used for training each tree.
-        # 'classifier__colsample_bytree': [0.8, 0.9, 1.0],
-        # # Minimum loss reduction required to make a further partition on a leaf node.
-        # 'classifier__gamma': [0, 0.1, 0.2],
-        # # Minimum sum of instance weight (hessian) needed in a child.
-        # 'classifier__min_child_weight': [1, 2, 5],
-        # # L1 regularization term on weights.
-        # 'classifier__alpha': [0, 0.1, 1],
-        # #  L2 regularization term on weights.
-        # 'classifier__lambda': [0, 0.1, 1]
-    }
-}
+    Dependencies:
+    - pandas, xgboost, sklearn.model_selection, sklearn.metrics, sklearn.preprocessing, and sklearn.pipeline.
+
+    Reference:
+    - The function uses RandomizedSearchCV for hyperparameter tuning with K-Fold cross-validation.
+
+    """
 
 
-# Initialize results dictionary
-results = {}
+    # Confirm with CDR, what new columns are we generating?
+    # Separate features (X) and target (y)
+    X = df.drop(labels=['Upcoming_event','Record ID',
+                        'Date of Procedure','Date of Blood Draw', 
+                        'Time to Event', 'Thrombosis_event'], axis=1)
+    y = df['Upcoming_event']
 
-# Perform K-Fold cross-validation and hyperparameter tuning for each model
-for model_name, model in models.items():
-    print(f"Training {model_name}...")
+    # Split data into training and test sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Create a Pipeline with feature scaling using RobustScaler
+    # Create an XGBoost model
+    model = xgb.XGBClassifier()
+
+    # Create a RobustScaler for feature scaling
+    scaler = RobustScaler()
+
+    # Create a pipeline with feature scaling and the XGBoost model
     pipeline = Pipeline([
-        ('scaler', RobustScaler()),  # Use RobustScaler for feature scaling
+        ('scaler', scaler),
         ('classifier', model)
     ])
+
+    # Define hyperparameter grid for tuning (adjust as needed)
+    param_dist = {
+        'classifier__n_estimators': [100, 200, 300],
+        'classifier__max_depth': [3, 4, 5],
+        'classifier__learning_rate': [0.1, 0.01, 0.001],
+        # CONFIRM WITH CDR
+    }
 
     # Initialize K-Fold cross-validation
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
     # Initialize GridSearchCV for hyperparameter tuning
-    grid_search = GridSearchCV(estimator=pipeline, param_grid=param_grids[model_name],
-                               scoring='accuracy', cv=kf)
+    # CONFIRM WITH CDR. 
+    # -   Might not ue accuracy to score.
+    # -   Choose n_iter 
+    randomized_search = RandomizedSearchCV(estimator=pipeline, param_distributions=param_dist,
+                                           n_iter=10, scoring='accuracy', cv=kf, random_state=42)
 
     # Fit the model and perform hyperparameter tuning
-    grid_search.fit(X_train, y_train)
+    randomized_search.fit(X_train, y_train)
 
     # Get the best model and its parameters
-    best_model = grid_search.best_estimator_
-    best_params = grid_search.best_params_
+    best_model = randomized_search.best_estimator_
+    best_params = randomized_search.best_params_
 
     # Evaluate the best model on the test set
     y_pred = best_model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred, average='macro')
 
-    # Store results in the dictionary
-    results[model_name] = {
-        'Best Model': best_model,
-        'Best Parameters': best_params,
-        'Test Accuracy': accuracy,
-        'Test F1 Score (Macro)': f1
-    }
 
-    print(f"{model_name} training complete. Test Accuracy: {accuracy:.4f}, Test F1 Score (Macro): {f1:.4f}")
+    # CONFIRM WITH CDR. Accuracy might not be the one used to score, best params will also change maybe
+    return best_model, best_params, accuracy, X_train
 
-# Print results
-for model_name, result in results.items():
-    print(f"Model: {model_name}")
-    print(f"Best Parameters: {result['Best Parameters']}")
-    print(f"Test Accuracy: {result['Test Accuracy']:.4f}")
-    print(f"Test F1 Score (Macro): {result['Test F1 Score (Macro)']:.4f}")
-    print()
+
+# # Load your dataset
+# data_path = "./data/Preprocessed_Data.xlsx"
+# df = pd.read_excel(data_path)
+
+
+# best_model, best_params, accuracy = generate_model(df)
+# print("Best Model:", best_model)
+# print("Best Parameters:", best_params)
+# print("Test Accuracy:", accuracy)
