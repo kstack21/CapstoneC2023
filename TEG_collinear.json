@@ -1,25 +1,29 @@
-[
+{
+    "Clot treatment drugs":
     [
         "HKH MA (mm)", 
         "ActF MA (mm)",
         "ADP MA (mm)"
-    ], 
+    ],
+    "Effects of fibrogen":
     [
         "ActF MA (mm)", 
         "CFF Max Amplitude (MA) in mm", 
         "CFF FLEV(mg/dl)"
     ],
+    "Heparin effect":
     [
-        "HKH MA (mm)", 
-        "CKH Max Amplitude (MA) in mm"
+        "HKH MA (mm)"
     ],
+    "Unaltered blood ":
     [
         "CRT MA (mm)", 
-        "CK MA(mm)", 
-        "ADP MA(mm)"
-    ], 
+        "CK MA (mm)", 
+        "ADP MA (mm)"
+    ],
+    "Unaltered time to clot ":
     [
-        "CK R(min)", 
-        "CKH R(min)"
+        "CK R (min)", 
+        "CKH R (min)"
     ]
-]
+}   
