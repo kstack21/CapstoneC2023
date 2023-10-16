@@ -10,26 +10,30 @@ parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
 from functions import path_back_to
 
+exampleDataFrame = pd.DataFrame({'Age': [50], 'Diabetes': [1], 'BMI': [28.5], 'etc.': ['etc.']})
 #--------------------------Page description--------------------------#
 st.set_page_config(
     page_title="Predict Thrombotic Risk",
     page_icon="📊",
 )
 
-# Main layout
+# Title and Instructions
 st.title("Predict a Patient's Risk of Thrombosis")
-st.markdown("""Upload a patient's file (Excel) using the button in the sidebar
-            to see their predicted risk of thrombosis.""")
-st.markdown("Patient data demographics overview:")
+st.markdown("""Upload a patient's file using the button 'Upload Patient Data'
+            in the sidebar to see their predicted risk of thrombosis.""")
+st.write("""Please make sure that the file is an Excel file in the following format:""")
+st.dataframe(exampleDataFrame, width=500)
+st.write("""Please also make sure that any yes/no values are indicated as 1/0, respectively,
+         as illustrated in the 'Diabetes' column above.""")   
+st.write("""Minimum expected factors: 'Age', 'Tobacco Use', 'Hypertension', 'Male', 'White',
+            'Clotting Disorder', 'Extremity', 'Artery affected', 'BMI', and 'Diabetes'""")
 
 #--------------------------Side bar--------------------------#
 # Upload model
-st.sidebar.file_uploader("Upload Data Set")
+st.sidebar.file_uploader("Upload Data Set to Train Model")
 
 # Upload patient's data
 uploaded_file = st.sidebar.file_uploader("Upload Patient Data", type=["xlsx"])
-#if uploaded_file != None:
-#    st.write("Patient data uploaded.")
 
 # Download 
 st.sidebar.button("Export results")
@@ -53,7 +57,6 @@ if uploaded_file != None:
             st.metric(label = "Age", value = df.at[0,'Age'])
         else:
             st.metric(label = ":red[Age]", value = "No column named 'Age'")
-
         # Tobacco Use
         if 'Tobacco Use' in df:
             if df.at[0,'Tobacco Use'] == 1:
@@ -67,7 +70,6 @@ if uploaded_file != None:
             st.metric(label = "Tobacco Use", value = temp)
         else:
             st.metric(label = ":red[Tobacco Use]", value = "No column named 'Tobacco Use'")
-
         # Hypertension
         if 'Hypertension' in df:
             if df.at[0,'Hypertension']:
@@ -88,7 +90,6 @@ if uploaded_file != None:
             st.metric(label = "Sex", value = temp)
         else:
             st.metric(label = ":red[Sex]", value = "No column named 'Sex'")
-
         # Race (White vs Not White)
         if 'White' in df:
             if df.at[0,'White']:
@@ -98,7 +99,6 @@ if uploaded_file != None:
             st.metric(label = "Race", value = temp)
         else:
             st.metric(label = ":red[White]", value = "No column named 'White'")
-
         # Clotting Disorder
         if 'Clotting Disorder' in df:
             if df.at[0,'Clotting Disorder']:
@@ -110,20 +110,17 @@ if uploaded_file != None:
             st.metric(label = ":red[Clotting Disorder]", value = "No column named 'Clotting Disorder'")
 
     with col3:
-        
         # Extremity and Artery Affected
         if ('Extremity' in df) & ('Artery affected' in df):
             temp = df.at[0, 'Extremity'] + " " + df.at[0, 'Artery affected']
             st.metric(label="Affected Artery", value = temp)
         else:
             st.metric(label = ":red[Affected Artery]", value = "No column named 'Extremity' and/or 'Artery affected'")
-
         # BMI
         if 'BMI' in df:
             st.metric(label="BMI", value = df.at[0, 'BMI'])
         else:
             st.metric(label = ":red[BMI]", value = "No column named 'BMI'")
-
         # Diabetes
         if 'Diabetes' in df:
             if df.at[0, 'Diabetes']:
@@ -169,6 +166,9 @@ prediction = prediction.T.squeeze()
 largest_contributor = prediction.nlargest(n=10, keep='first')
 largest_contributor = pd.DataFrame({'Category': largest_contributor.index, 'Value': largest_contributor.values})
 
+# Pie chart title
+st.subheader("Predictive Model Details:")
+
 # Plot pie chart
-fig = px.pie(largest_contributor, names='Category', values='Value', title='Parameters contribution to risk')
+fig = px.pie(largest_contributor, names='Category', values='Value', title='Contribution of Top 10 Influential Factors')
 st.plotly_chart(fig, use_container_width=True)
