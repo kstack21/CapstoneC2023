@@ -48,9 +48,15 @@ st.plotly_chart(fig, use_container_width=True)
 st.sidebar.file_uploader("Upload Data Set")
 
 # Upload patient's data
+<<<<<<< HEAD
 uploaded_file = st.sidebar.file_uploader("Upload Patient Data", type=["csv", "xlsx"])
 #if uploaded_file != None:
 #    st.write("Patient data uploaded.")
+=======
+uploaded_file = st.sidebar.file_uploader("Upload Patient Data", type=["xlsx"])
+if uploaded_file != None:
+    st.write("Patient data uploaded.")
+>>>>>>> 5185c234555b5395fe26a1b8665dfb438c2f434e
 
 # Download 
 st.sidebar.button("Export results")

@@ -8,18 +8,16 @@ import streamlit as st
 import pandas as pd 
 
 st.set_page_config(
-    page_title="Welcome and Instructions",
+    page_title="CLØT WATCH",
     page_icon="🏥",
 )
 
-st.title("Welcome to [App name]! 👋")
+st.title("Welcome to MAGIC-CLØT! 👋")
 
 st.markdown(
     """
-    This page should provide a welcome to the users and offer 
-    clear instructions on how to use the website. 
-    You can include a brief overview of the project, 
-    the importance of predicting thrombotic events, 
-    and step-by-step guidance on how to proceed.
-"""
+    MAGIC-CLØT (Machine Learning Algorithm for General Identification of Clots in Lower-Extremity Obstruction and Thrombosis)
+    Clot Watch
+    CLOT WATCH (Computerized Learning and Observation Tool for Detecting Thrombosis in Cardiac and Limb Artery Health)
+    """
 )
