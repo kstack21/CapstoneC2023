@@ -43,88 +43,145 @@ largest_contributor = pd.DataFrame({'Category': largest_contributor.index, 'Valu
 fig = px.pie(largest_contributor, names='Category', values='Value', title='Parameters contribution to risk')
 st.plotly_chart(fig, use_container_width=True)
 
-
 #--------------------------Side bar--------------------------#
 # Upload model
 st.sidebar.file_uploader("Upload Data Set")
 
 # Upload patient's data
+<<<<<<< HEAD
+uploaded_file = st.sidebar.file_uploader("Upload Patient Data", type=["csv", "xlsx"])
+#if uploaded_file != None:
+#    st.write("Patient data uploaded.")
+=======
 uploaded_file = st.sidebar.file_uploader("Upload Patient Data", type=["xlsx"])
 if uploaded_file != None:
     st.write("Patient data uploaded.")
+>>>>>>> 5185c234555b5395fe26a1b8665dfb438c2f434e
 
 # Download 
 st.sidebar.button("Export results")
 
 #--------------------------Patient info--------------------------#
-# Get data from folder
-data_path = path_back_to(["data","DummyResult.xlsx"])
+# Get patient data from uploaded file
+if uploaded_file != None:
+    df = pd.read_excel(uploaded_file, engine="openpyxl")
+    #st.write(df)   # shows whole uploaded excel file
 
+    # Patient Data Header #
+    st.header(':green[Patient Data Uploaded]')
 
-## Patient 0 Header ##
-c1, c2, c3 = st.columns(3)
-with c2:
-    st.header(':red[Patient 0]')
+    # Organizing text in columns
+    col1, col2, col3 = st.columns(3)
 
-# Organizing text in columns
-col1, col2, col3 = st.columns(3)
+    # Present General Patient Info
+    with col1:
+        # Age
+        if 'Age' in df:
+            st.metric(label = "Age", value = df.at[0,'Age'])
+        else:
+            st.metric(label = ":red[Age]", value = "No column named 'Age'")
 
-# Present General Patient Info
-with col1:
-    st.metric(label="Age", value=45)
-    st.metric(label="Tobacco Use", value="Low")
-    st.metric(label="Hypertension", value="Yes")
-with col2:
-    st.metric(label="Sex", value="Male")
-    st.metric(label="Race", value="White")
-    st.metric(label="Clotting Disorder", value="No")
-with col3:
-    st.metric(label="Affected Artery", value="Tibial")
-    st.metric(label="BMI", value=28.5)
-    st.metric(label="Diabetes", value="No")
+        # Tobacco Use
+        if 'Tobacco Use' in df:
+            if df.at[0,'Tobacco Use'] == 1:
+                temp = "Low"
+            elif df.at[0, 'Tobacco Use'] == 2:
+                temp = "Medium"
+            elif df.at[0, 'Tobacco Use'] >= 3:
+                temp = "High"
+            else:
+                temp = "None"
+            st.metric(label = "Tobacco Use", value = temp)
+        else:
+            st.metric(label = ":red[Tobacco Use]", value = "No column named 'Tobacco Use'")
 
+        # Hypertension
+        if 'Hypertension' in df:
+            if df.at[0,'Hypertension']:
+                temp = "Yes"
+            else:
+                temp = "No"
+            st.metric(label="Hypertension", value = temp)
+        else:
+            st.metric(label = ":red[Hypertension]", value = "No column named 'Hypertension'")
 
-## Patient 1 Header ##
-c1, c2, c3 = st.columns(3)
-with c2:
-    st.header(':red[Patient 1]')
+    with col2:
+        # Sex
+        if 'Male' in df:
+            if df.at[0,'Male']:
+                temp = "Male"
+            else:
+                temp = "Not Male (Female or other)"
+            st.metric(label = "Sex", value = temp)
+        else:
+            st.metric(label = ":red[Sex]", value = "No column named 'Sex'")
 
-# Organizing text in columns
-col1, col2, col3 = st.columns(3)
+        # Race (White vs Not White)
+        if 'White' in df:
+            if df.at[0,'White']:
+                temp = "White"
+            else:
+                temp = "Not White"
+            st.metric(label = "Race", value = temp)
+        else:
+            st.metric(label = ":red[White]", value = "No column named 'White'")
 
-# Present General Patient Info
-with col1:
-    st.metric(label="Age", value=62)
-    st.metric(label="Tobacco Use", value="Medium")
-    st.metric(label="Hypertension", value="No")
-with col2:
-    st.metric(label="Sex", value="Female")
-    st.metric(label="Race", value="White")
-    st.metric(label="Clotting Disorder", value="Yes")
-with col3:
-    st.metric(label="Affected Artery", value="Femoral")
-    st.metric(label="BMI", value=32.1)
-    st.metric(label="Diabetes", value="Yes")
+        # Clotting Disorder
+        if 'Clotting Disorder' in df:
+            if df.at[0,'Clotting Disorder']:
+                temp = "Yes"
+            else:
+                temp = "No"
+            st.metric(label = "Clotting Disorder", value = temp)
+        else:
+            st.metric(label = ":red[Clotting Disorder]", value = "No column named 'Clotting Disorder'")
 
+    with col3:
+        
+        # Extremity and Artery Affected
+        if ('Extremity' in df) & ('Artery affected' in df):
+            temp = df.at[0, 'Extremity'] + " " + df.at[0, 'Artery affected']
+            st.metric(label="Affected Artery", value = temp)
+        else:
+            st.metric(label = ":red[Affected Artery]", value = "No column named 'Extremity' and/or 'Artery affected'")
 
-## Patient 2 Header ##
-c1, c2, c3 = st.columns(3)
-with c2:
-    st.header(':red[Patient 2]')
+        # BMI
+        if 'BMI' in df:
+            st.metric(label="BMI", value = df.at[0, 'BMI'])
+        else:
+            st.metric(label = ":red[BMI]", value = "No column named 'BMI'")
 
-# Organizing text in columns
-col1, col2, col3 = st.columns(3)
+        # Diabetes
+        if 'Diabetes' in df:
+            if df.at[0, 'Diabetes']:
+                temp = "Yes"
+            else:
+                temp = "No"
+            st.metric(label="Diabetes", value = temp)
+        else:
+            st.metric(label = ":red[Diabetes]", value = "No column named 'Diabetes'")
 
-# Present General Patient Info
-with col1:
-    st.metric(label="Age", value=57)
-    st.metric(label="Tobacco Use", value="High")
-    st.metric(label="Hypertension", value="Yes")
-with col2:
-    st.metric(label="Sex", value="Male")
-    st.metric(label="Race", value="Not White")
-    st.metric(label="Clotting Disorder", value="No")
-with col3:
-    st.metric(label="Affected Artery", value="Tibial")
-    st.metric(label="BMI", value=25.8)
-    st.metric(label="Diabetes", value="No")
+# display outline of patient data if nothing has been uploaded
+else:
+    # display dataframe
+    st.header("Data description")
+
+    # data header (no patient info)
+    st.header(':red[No Patient Data Uploaded]')
+
+    # organizing text in columns
+    col1, col2, col3 = st.columns(3)
+
+    # display empty sections
+    with col1:
+        st.metric(label=":red[Age]", value = '')
+        st.metric(label=":red[Tobacco Use]", value = '')
+        st.metric(label=":red[Hypertension]", value = '')
+    with col2:
+        st.metric(label=":red[Sex]", value = '')
+        st.metric(label=":red[Race]", value = '')
+        st.metric(label=":red[Clotting Disorder]", value = '')
+    with col3:
+        st.metric(label=":red[Affected Artery]", value = '')
+        st.metric(label=":red[BMI]", value = '')
+        st.metric(label=":red[Diabetes]", value = '')
