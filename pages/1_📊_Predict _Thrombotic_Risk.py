@@ -17,46 +17,19 @@ st.set_page_config(
 )
 
 # Main layout
-st.title("Page title")
-st.markdown("""This page should be where users can input patient 
-            data and receive predictions regarding thrombotic risk. 
-            Users can input patient-specific information, 
-            and the model will generate a risk assessment based on the input data. 
-            This page should have a user-friendly interface for data input 
-            and result display.""")
+st.title("Predict a Patient's Risk of Thrombosis")
+st.markdown("""Upload a patient's file (Excel) using the button in the sidebar
+            to see their predicted risk of thrombosis.""")
 st.markdown("Patient data demographics overview:")
-
-#--------------------------Model info--------------------------#
-
-
-#--------------------------Prediction--------------------------#
-# Get data from folder
-data_path = path_back_to(["data","DummyResult.xlsx"])
-
-# Get 10 most influencial elements
-prediction = pd.read_excel(data_path)
-prediction = prediction.T.squeeze()
-largest_contributor = prediction.nlargest(n=10, keep='first')
-largest_contributor = pd.DataFrame({'Category': largest_contributor.index, 'Value': largest_contributor.values})
-
-# Plot pie chart
-fig = px.pie(largest_contributor, names='Category', values='Value', title='Parameters contribution to risk')
-st.plotly_chart(fig, use_container_width=True)
 
 #--------------------------Side bar--------------------------#
 # Upload model
 st.sidebar.file_uploader("Upload Data Set")
 
 # Upload patient's data
-<<<<<<< HEAD
-uploaded_file = st.sidebar.file_uploader("Upload Patient Data", type=["csv", "xlsx"])
+uploaded_file = st.sidebar.file_uploader("Upload Patient Data", type=["xlsx"])
 #if uploaded_file != None:
 #    st.write("Patient data uploaded.")
-=======
-uploaded_file = st.sidebar.file_uploader("Upload Patient Data", type=["xlsx"])
-if uploaded_file != None:
-    st.write("Patient data uploaded.")
->>>>>>> 5185c234555b5395fe26a1b8665dfb438c2f434e
 
 # Download 
 st.sidebar.button("Export results")
@@ -163,9 +136,6 @@ if uploaded_file != None:
 
 # display outline of patient data if nothing has been uploaded
 else:
-    # display dataframe
-    st.header("Data description")
-
     # data header (no patient info)
     st.header(':red[No Patient Data Uploaded]')
 
@@ -185,3 +155,20 @@ else:
         st.metric(label=":red[Affected Artery]", value = '')
         st.metric(label=":red[BMI]", value = '')
         st.metric(label=":red[Diabetes]", value = '')
+
+#--------------------------Model info--------------------------#
+
+
+#--------------------------Prediction--------------------------#
+# Get data from folder
+data_path = path_back_to(["data","DummyResult.xlsx"])
+
+# Get 10 most influencial elements
+prediction = pd.read_excel(data_path)
+prediction = prediction.T.squeeze()
+largest_contributor = prediction.nlargest(n=10, keep='first')
+largest_contributor = pd.DataFrame({'Category': largest_contributor.index, 'Value': largest_contributor.values})
+
+# Plot pie chart
+fig = px.pie(largest_contributor, names='Category', values='Value', title='Parameters contribution to risk')
+st.plotly_chart(fig, use_container_width=True)
