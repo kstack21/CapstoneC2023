@@ -251,11 +251,11 @@ def preprocess(df):
     return df
 
 
-# Main script
-data_path = "./data/DummyData_Extended.xlsx"
-df = pd.read_excel(data_path)
-df = preprocess(df)
+# # Main script
+# data_path = "./data/DummyData_Extended.xlsx"
+# df = pd.read_excel(data_path)
+# df = preprocess(df)
 
-output_file = './data/Preprocessed_Data.xlsx'
-df.to_excel(output_file, index=False)
-print("Data saved")
+# output_file = './data/Preprocessed_Data.xlsx'
+# df.to_excel(output_file, index=False)
+# print("Data saved")

@@ -86,11 +86,11 @@ def generate_model(df):
 
     # Evaluate the best model on the test set
     y_pred = best_model.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
+    scoring = accuracy_score(y_test, y_pred)
 
 
     # CONFIRM WITH CDR. Accuracy might not be the one used to score, best params will also change maybe
-    return best_model, best_params, accuracy, X_train
+    return best_model, best_params, scoring, X_train
 
 
 # # Load your dataset

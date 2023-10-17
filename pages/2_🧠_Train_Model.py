@@ -5,7 +5,9 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import sys
 import os
+import joblib 
 import json
+import base64
 
 # Get higher level functions
 current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -37,15 +39,12 @@ def cached_generate_model(df):
     best_model, best_params, accuracy, X_train = generate_model(df)
     return best_model, best_params, accuracy, X_train
 
-# @st.cache_data
-# def cached_model_explainer(_model, X_test):
-#     # Create an explainer
-#     explainer = shap.Explainer(_model)
+# Define a function to train a simple model (you can replace this with your actual model training code)
+def train_model():
+    # Here, you can replace this with your model training logic
+    model = "YourTrainedModel"
+    return model
 
-#     # Calculate Shapley values for a specific instance or a set of instances
-#     shap_values = explainer(X_test)
-
-    
 #     return shap_values
 
 
@@ -64,14 +63,8 @@ st.markdown("""This page allows user to train a model
             Start by uploding a dataset with TEG data on the left column.""")
 
 #--------------------------Side bar--------------------------#
-# Upload patient's data (Excel format only)
+# Upload patient's data (Excel format only) button
 uploaded_file = st.sidebar.file_uploader("Upload Data Set of Patient Data (XLSX)", type=["xlsx"])
-
-# Train and validate model
-st.sidebar.button("Train and validate")
-
-# Download 
-st.sidebar.button("Download")
 
 #--------------------------Data description--------------------------#
 if uploaded_file is not None:
@@ -145,16 +138,33 @@ if uploaded_file is not None:
             # Convert the group list to a tuple and store the selected feature in the dictionary
             selected_features[title] = selected_feature
 
-    # Now, selected_features is a dictionary where keys are tuples of group names and values are the selected features
-    # You can access the selected features later in your code
-
+ 
     st.write("Parameters selected by the user")
     st.write(selected_features)
         
     with st.expander("Other parameters"):
         # Create a list of radio button labels with feature names and percentages
         st.dataframe(other_features)
+    
 
+    # Train optimized model
+    # Train and validate model button in side bar
+    if st.sidebar.button("Train and validate"):
+        st.text("Training the model...")
+        best_model, best_params, accuracy, X_train = cached_generate_model(df)
+        st.text("Model trained successfully!")
 
-# #--------------------------Model performance--------------------------#
+        # Save the trained model to a file (e.g., using joblib)
+        joblib.dump(best_model, "trained_model.pkl")
+        with open("trained_model.pkl", "rb") as model_file:
+            model_binary = model_file.read()
+        
+        # Encode the model_binary in base64
+        b64 = base64.b64encode(model_binary).decode()
+        
+        # Create a download link for the model file
+        href = f'<a href="data:application/octet-stream;base64,{b64}" download="trained_model.pkl">Download Model</a>'
+        st.markdown(href, unsafe_allow_html=True)
 
+            
+    #--------------------------Model performance--------------------------#
