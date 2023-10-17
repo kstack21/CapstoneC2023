@@ -12,12 +12,25 @@ st.set_page_config(
     page_icon="🏥",
 )
 
-st.title("Welcome to MAGIC-CLØT! 👋")
+st.title("CLØT WATCH")
 
 st.markdown(
     """
-    MAGIC-CLØT (Machine Learning Algorithm for General Identification of Clots in Lower-Extremity Obstruction and Thrombosis)
-    Clot Watch
-    CLOT WATCH (Computerized Learning and Observation Tool for Detecting Thrombosis in Cardiac and Limb Artery Health)
+    CLOT WATCH predicts a patient's risk of thrombosis with the click of a few buttons!   
+    
+    To use the current predictive model to obtain a patient's predicted risk, use the side bar to navigate to page 1
+    ('Predict Thrombotic Risk').    
+    
+    To upload data to train a new predictive model, use the side bar to navigate to page 2 ('Train Model').   
     """
 )
+
+st.write("""
+         :red[DISCLAIMER:    
+         CLOT WATCH was developed as an academic project by seniors at Northeastern University in collaboration with
+         Dr. Anahita Dua and her team at Massachusetts General Hospital. CLOT WATCH has been minimally tested and has
+         not been reviewed by the FDA. It should not be used to definitively assume a patient's risk of thrombosis.
+         There are many factors that may play into a patient's risk of thrombosis, and CLOT WATCH does not take all of
+         them into account. Physicians should use their own judgement and analysis of the patient in addition to, or
+         even in place of, the risk evaluation produced by CLOT WATCH.]
+         """)
