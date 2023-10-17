@@ -56,7 +56,7 @@ if uploaded_file != None:
         if 'Age' in df:
             st.metric(label = "Age", value = df.at[0,'Age'])
         else:
-            st.metric(label = ":red[Age]", value = "No column named 'Age'")
+            st.metric(label = ":red[Age]", value = "n/a")
         # Tobacco Use
         if 'Tobacco Use' in df:
             if df.at[0,'Tobacco Use'] == 1:
@@ -69,7 +69,7 @@ if uploaded_file != None:
                 temp = "None"
             st.metric(label = "Tobacco Use", value = temp)
         else:
-            st.metric(label = ":red[Tobacco Use]", value = "No column named 'Tobacco Use'")
+            st.metric(label = ":red[Tobacco Use]", value = "n/a")
         # Hypertension
         if 'Hypertension' in df:
             if df.at[0,'Hypertension']:
@@ -78,7 +78,7 @@ if uploaded_file != None:
                 temp = "No"
             st.metric(label="Hypertension", value = temp)
         else:
-            st.metric(label = ":red[Hypertension]", value = "No column named 'Hypertension'")
+            st.metric(label = ":red[Hypertension]", value = "n/a")
 
     with col2:
         # Sex
@@ -89,7 +89,7 @@ if uploaded_file != None:
                 temp = "Not Male (Female or other)"
             st.metric(label = "Sex", value = temp)
         else:
-            st.metric(label = ":red[Sex]", value = "No column named 'Sex'")
+            st.metric(label = ":red[Sex]", value = "n/a")
         # Race (White vs Not White)
         if 'White' in df:
             if df.at[0,'White']:
@@ -98,7 +98,7 @@ if uploaded_file != None:
                 temp = "Not White"
             st.metric(label = "Race", value = temp)
         else:
-            st.metric(label = ":red[White]", value = "No column named 'White'")
+            st.metric(label = ":red[White]", value = "n/a")
         # Clotting Disorder
         if 'Clotting Disorder' in df:
             if df.at[0,'Clotting Disorder']:
@@ -107,15 +107,21 @@ if uploaded_file != None:
                 temp = "No"
             st.metric(label = "Clotting Disorder", value = temp)
         else:
-            st.metric(label = ":red[Clotting Disorder]", value = "No column named 'Clotting Disorder'")
+            st.metric(label = ":red[Clotting Disorder]", value = "n/a")
 
     with col3:
         # Extremity and Artery Affected
         if ('Extremity' in df) & ('Artery affected' in df):
             temp = df.at[0, 'Extremity'] + " " + df.at[0, 'Artery affected']
             st.metric(label="Affected Artery", value = temp)
+        elif ('Extremity' in df) & ('Artery affected' not in df):
+            temp = df.at[0, 'Extremity'] + " Side"
+            st.metric(label = "Affected Artery", value = temp)
+        elif ('Extremity' not in df) & ('Artery affected' in df):
+            temp = df.at[0, 'Artery affected']
+            st.metric(label = "Affected Artery", value = temp)
         else:
-            st.metric(label = ":red[Affected Artery]", value = "No column named 'Extremity' and/or 'Artery affected'")
+            st.metric(label = ":red[Affected Artery]", value = "n/a")
         # BMI
         if 'BMI' in df:
             st.metric(label="BMI", value = df.at[0, 'BMI'])
@@ -131,6 +137,9 @@ if uploaded_file != None:
         else:
             st.metric(label = ":red[Diabetes]", value = "No column named 'Diabetes'")
 
+    # display thrombosis risk
+    st.header(":green[Patient's Calculated Risk of Thrombosis: ]")
+    st.subheader(":red[No risk calculated yet]")
 # display outline of patient data if nothing has been uploaded
 else:
     # data header (no patient info)
@@ -152,6 +161,10 @@ else:
         st.metric(label=":red[Affected Artery]", value = '')
         st.metric(label=":red[BMI]", value = '')
         st.metric(label=":red[Diabetes]", value = '')
+
+    # display thrombosis risk
+    st.header(":red[Patient's Calculated Risk of Thrombosis: ]")
+    st.subheader(":red[No risk calculated yet]")
 
 #--------------------------Model info--------------------------#
 
