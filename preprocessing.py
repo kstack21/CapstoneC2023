@@ -1,7 +1,20 @@
 import pandas as pd
 from sklearn.preprocessing import RobustScaler, OrdinalEncoder
 
-
+# Assuming df is your DataFrame and columns_to_process contains the specified columns
+TEG_values = [
+        'Reaction Time (R) in min', 
+        'Lysis at 30 min (LY30) in %', 
+        'CRT Max amplitude (MA) in mm',
+        'CFF Max Amplitude (MA) in mm', 
+        'HKH MA (mm)', 'ActF MA (mm)', 
+        'ADP MA (mm)', 'AA MA (mm)',
+        'ADP % Aggregation', 'ADP % Inhibition', 
+        'AA % Aggregation', 'AA % Inhibition', 
+        'CK R (min)',
+        'CK K (min)', 'CK angle (deg)', 'CK MA (mm)', 
+        'CRT MA (mm)', 'CKH R (min)', 'CFF MA (mm)'
+    ]
 
 def encode_ordinal_features(df):
     """ 
@@ -222,7 +235,7 @@ def preprocess(df):
     It returns the preprocessed DataFrame.
     """
     # Encode dategorical
-    #df = encode_categorical_features(df)
+    df = encode_categorical_features(df)
 
     # Encode ordinal features
     df = encode_ordinal_features(df)
@@ -231,13 +244,7 @@ def preprocess(df):
     # "Statin" and "Cilostazol" columns into Boolean 
     df = to_boolean(df)
     
-    # Assuming df is your DataFrame and columns_to_process contains the specified columns
-    TEG_values = [
-        'Reaction Time (R) in min', 'Lysis at 30 min (LY30) in %', 'CRT Max amplitude (MA) in mm',
-        'CFF Max Amplitude (MA) in mm', 'HKH MA (mm)', 'ActF MA (mm)', 'ADP MA (mm)', 'AA MA (mm)',
-        'ADP % Aggregation', 'ADP % Inhibition', 'AA % Aggregation', 'AA % Inhibition', 'CK R (min)',
-        'CK K (min)', 'CK angle (deg)', 'CK MA (mm)', 'CRT MA (mm)', 'CKH R (min)', 'CFF MA (mm)'
-    ]
+    
 
     # Process the DataFrame to calculate rates since the last time point
     df = calculate_difference_and_rate_since_last_timepoint(df, TEG_values)
@@ -248,14 +255,35 @@ def preprocess(df):
     # Convert trombotic event to label column
     df = binarize_thrombotic_event(df)
 
+    # Check with CDR. This is just here as a placeholder so this works. Needs to be revised
+    df = df.drop(labels=['Record ID',
+                        'Date of Procedure','Date of Blood Draw', 
+                        'Time to Event', 'Thrombosis_event'], axis=1)
+
     return df
 
 
-# # Main script
-# data_path = "./data/DummyData_Extended.xlsx"
-# df = pd.read_excel(data_path)
-# df = preprocess(df)
+def split_df(feature_importance_df):
+    # Create a DataFrame with the features related to TEG values
+    teg_related_df = feature_importance_df[feature_importance_df['Feature'].str.startswith(tuple(TEG_values))]
 
-# output_file = './data/Preprocessed_Data.xlsx'
-# df.to_excel(output_file, index=False)
-# print("Data saved")
+    # Find the rows with the highest percentage contribution for each prefix
+    teg_df = teg_related_df.groupby(teg_related_df['Feature'].str[:4])['Percentage Contribution'].idxmax()
+    teg_df = teg_related_df.loc[teg_df]
+
+    # Create a DataFrame with the features that are not related to TEG
+    non_teg_df = feature_importance_df[~feature_importance_df['Feature'].str.startswith(tuple(TEG_values))]
+    
+    return teg_df, non_teg_df
+
+    
+
+# # Main script
+if __name__ == "__main__":
+    data_path = "./data/DummyData_Extended.xlsx"
+    df = pd.read_excel(data_path)
+    df = preprocess(df)
+
+    output_file = './data/Preprocessed_Data.xlsx'
+    df.to_excel(output_file, index=False)
+    print("Data saved")
