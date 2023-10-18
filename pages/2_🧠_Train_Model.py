@@ -7,16 +7,18 @@ import sys
 import os
 import joblib 
 import json
+import re
 import base64
+import shap
 
 # Get higher level functions
 current_directory = os.path.dirname(os.path.abspath(__file__))
 parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
 from functions import data_demographics_fig, describe_dataframe, feature_importance
-from preprocessing import preprocess
+from preprocessing import preprocess, split_df
 from models_classifier import generate_model
-import shap
+
 
 #--------------------------Functions--------------------------#
 @st.cache_data
@@ -92,8 +94,14 @@ if uploaded_file is not None:
         best_model, best_params, accuracy, X_train = cached_generate_model(df)
         
         # Get feature importances from the XGBoost model in the pipeline
-        feature_df = feature_importance(best_model, X_train)
+        feature_importance_df = feature_importance(best_model, X_train)
 
+        teg_df , non_teg_df = split_df(feature_importance_df)
+        teg_df.drop(columns=['Importance'], inplace=True)
+        non_teg_df.drop(columns=['Importance'], inplace=True)
+
+
+    # User selects parameters
 
     # Load the JSON file with a list of lists of strings
     # Replace 'your_json_file.json' with the actual path to your JSON file
@@ -104,8 +112,7 @@ if uploaded_file is not None:
     grouped_features = {group: [] for group in feature_groups}
 
     # Get all the features
-    features = feature_df['Feature'].values.tolist()
-    other_features = feature_df.drop(columns=['Importance'])
+    features = teg_df['Feature'].values.tolist()
 
     # Group the features based on the information in the JSON file
     # feature_groups = {"group name":[teg value 1, teg value2...]}
@@ -114,10 +121,7 @@ if uploaded_file is not None:
             for f in features:
                 if f.startswith(teg_value):
                     grouped_features[group].append(f)
-                    other_features = other_features[other_features.Feature != f]
-    other_features.reset_index(inplace=True, drop=True)
                     
-
 
     st.subheader("Select one of the related parameters")
 
@@ -130,7 +134,7 @@ if uploaded_file is not None:
         with st.expander(f"{title}"):
             
             # Create a list of radio button labels with feature names and percentages
-            radio_labels = [f"{row['Feature']} ({row['Percentage Contribution']}%)" for _, row in feature_df.iterrows() if row['Feature'] in group]
+            radio_labels = [f"{row['Feature']} ({row['Percentage Contribution']}%)" for _, row in teg_df.iterrows() if row['Feature'] in group]
 
             # Create a radio button to select a feature from the group
             selected_feature = st.radio("", radio_labels, key=group)
@@ -144,18 +148,33 @@ if uploaded_file is not None:
         
     with st.expander("Other parameters"):
         # Create a list of radio button labels with feature names and percentages
-        st.dataframe(other_features)
+        st.dataframe(non_teg_df)
     
 
     # Train optimized model
     # Train and validate model button in side bar
     if st.sidebar.button("Train and validate"):
+
+        # Create new dataframe
+        selected_features_list = []
+
+        # Process the values in the dictionary containing items selected by user. Convert to list
+        for key, value in selected_features.items():
+            # Remove patterns matching (float%)
+            selected_features_list.append(re.sub(r'\(\d+\.\d+%\)', '', value).strip())
+        
+        # Extract the features mentioned in the "Feature" column of non_teg_df
+        non_teg_features = non_teg_df['Feature'].tolist()
+        selected_features_list =  selected_features_list + non_teg_features + ['Upcoming_event']
+        # Filter the columns of the original DataFrame based on the selected features
+        filtered_df = df[selected_features_list]
+
         st.text("Training the model...")
-        best_model, best_params, accuracy, X_train = cached_generate_model(df)
+        best_model, best_params, score, X_train = cached_generate_model(filtered_df)
         st.text("Model trained successfully!")
 
         # Save the trained model to a file (e.g., using joblib)
-        joblib.dump(best_model, "trained_model.pkl")
+        joblib.dump((best_model, best_params, score), "trained_model.pkl") # This is what is being dowloaded: best_model, best_params, score
         with open("trained_model.pkl", "rb") as model_file:
             model_binary = model_file.read()
         

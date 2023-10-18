@@ -9,6 +9,7 @@
     [
         "ActF MA (mm)", 
         "CFF Max Amplitude (MA) in mm", 
+        "CFF MA (mm)",
         "CFF FLEV(mg/dl)"
     ],
     "Heparin effect":

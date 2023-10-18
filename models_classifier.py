@@ -39,9 +39,7 @@ def generate_model(df):
 
     # Confirm with CDR, what new columns are we generating?
     # Separate features (X) and target (y)
-    X = df.drop(labels=['Upcoming_event','Record ID',
-                        'Date of Procedure','Date of Blood Draw', 
-                        'Time to Event', 'Thrombosis_event'], axis=1)
+    X = df.drop(labels=['Upcoming_event'], axis=1)
     y = df['Upcoming_event']
 
     # Split data into training and test sets
@@ -61,10 +59,12 @@ def generate_model(df):
 
     # Define hyperparameter grid for tuning (adjust as needed)
     param_dist = {
-        'classifier__n_estimators': [100, 200, 300],
+        # The maximum depth of each tree in the ensemble.
         'classifier__max_depth': [3, 4, 5],
-        'classifier__learning_rate': [0.1, 0.01, 0.001],
-        # CONFIRM WITH CDR
+        # Minimum loss reduction required to make a further partition on a leaf node.
+        'classifier__gamma': [0, 0.1, 0.2],
+        # Minimum sum of instance weight (hessian) needed in a child.
+        'classifier__min_child_weight': [1, 2, 5]
     }
 
     # Initialize K-Fold cross-validation
@@ -75,7 +75,7 @@ def generate_model(df):
     # -   Might not ue accuracy to score.
     # -   Choose n_iter 
     randomized_search = RandomizedSearchCV(estimator=pipeline, param_distributions=param_dist,
-                                           n_iter=10, scoring='accuracy', cv=kf, random_state=42)
+                                           n_iter=25, scoring='f1', cv=kf, random_state=42)
 
     # Fit the model and perform hyperparameter tuning
     randomized_search.fit(X_train, y_train)
@@ -93,12 +93,13 @@ def generate_model(df):
     return best_model, best_params, scoring, X_train
 
 
-# # Load your dataset
-# data_path = "./data/Preprocessed_Data.xlsx"
-# df = pd.read_excel(data_path)
+if __name__ == "__main__":
+    # Load your dataset
+    data_path = "./data/Preprocessed_Data.xlsx"
+    df = pd.read_excel(data_path)
 
 
-# best_model, best_params, accuracy = generate_model(df)
-# print("Best Model:", best_model)
-# print("Best Parameters:", best_params)
-# print("Test Accuracy:", accuracy)
+    best_model, best_params, scoring, X_train = generate_model(df)
+    print("Best Model:", best_model)
+    print("Best Parameters:", best_params)
+    print("Test F1:", scoring)
