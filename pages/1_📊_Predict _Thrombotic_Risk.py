@@ -30,7 +30,7 @@ st.write("""Minimum expected factors: 'Age', 'Tobacco Use', 'Hypertension', 'Mal
 
 #--------------------------Side bar--------------------------#
 # Upload model
-st.sidebar.file_uploader("Upload Data Set to Train Model")
+st.sidebar.file_uploader("Upload Predictive Model", type = ["pkl"])
 
 # Upload patient's data
 uploaded_file = st.sidebar.file_uploader("Upload Patient Data", type=["xlsx"])
