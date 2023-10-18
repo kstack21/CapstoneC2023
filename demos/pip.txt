@@ -2,4 +2,7 @@ Save environemnt
 pip list --format=freeze > requirements.txt
 
 Download environemnt in your environment
-pip : -r requirements.txt
+pip install -r "requirements.txt"
+*make sure "requirements.txt" is full path of file*
+should look something like this:
+pip install -r "C:\Users\lucap\OneDrive\Senior\Capstone 2\CapstoneC2023\requirements.txt"
