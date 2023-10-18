@@ -222,7 +222,7 @@ def preprocess(df):
     It returns the preprocessed DataFrame.
     """
     # Encode dategorical
-    df = encode_categorical_features(df)
+    #df = encode_categorical_features(df)
 
     # Encode ordinal features
     df = encode_ordinal_features(df)
