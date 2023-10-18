@@ -5,4 +5,4 @@ Download environemnt in your environment
 pip install -r "requirements.txt"
 *make sure "requirements.txt" is full path of file*
 should look something like this:
-pip install -r "C:\Users\lucap\OneDrive\Senior\Capstone 2\CapstoneC2023\requirements.txt"
+pip install -r "[PATH to file]requirements.txt"
