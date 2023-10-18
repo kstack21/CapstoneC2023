@@ -1,0 +1,5 @@
+Save environemnt
+pip list --format=freeze > requirements.txt
+
+Download environemnt in your environment
+pip : -r requirements.txt
