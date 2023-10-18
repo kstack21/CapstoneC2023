@@ -75,7 +75,7 @@ def generate_model(df):
     # -   Might not ue accuracy to score.
     # -   Choose n_iter 
     randomized_search = RandomizedSearchCV(estimator=pipeline, param_distributions=param_dist,
-                                           n_iter=10, scoring='accuracy', cv=kf, random_state=42)
+                                           n_iter=10, scoring='f1', cv=kf, random_state=42)
 
     # Fit the model and perform hyperparameter tuning
     randomized_search.fit(X_train, y_train)
