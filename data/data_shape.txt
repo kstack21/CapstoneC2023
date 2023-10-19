@@ -74,7 +74,7 @@ Does the patient have a history of solid organ transplant?:
 EGFR (mL/min/1.73m2):
 ['>60']
 min value 0
-max value 106
+max value 59
 
 Has subject had previous intervention of the index limb? :
 ['No', 'Yes']
@@ -105,10 +105,7 @@ Intervention Classification:
 ['Endo', 'Open', 'Combined']
 
 Intervention Type:
-['angioplasty', 'bypass', 'angioplasty, stent, endarterectomy', 'endarterectomy', 'angioplasty, stent', 'stent', 'endarterectomy, bypass', 'angioplasty, endarterectomy', 'stent, endarterectomy', 'DVA', 'angioplasty, bypass', 'angioplasty, endarterectomy, bypass', 'stent, thrombectomy', 'bypass, bypass revision', 'bypass revision', 'angioplasty, stent, DVA']
-
-Unnamed: 30:
-['angioplasty', 'endarterectomy', 'stent, thrombectomy', 'bypass, bypass revision', 'stent, endarterectomy', 'bypass', 'angioplasty, bypass', 'DVA', 'angioplasty, stent, endarterectomy', 'angioplasty, stent']
+['angioplasty', 'bypass', 'angioplasty, stent, endarterectomy', 'endarterectomy', 'angioplasty, stent', 'stent', 'endarterectomy, bypass', 'angioplasty, endarterectomy', 'stent, endarterectomy', 'DVA', 'angioplasty, bypass', 'angioplasty, endarterectomy, bypass', 'stent, thrombectomy', 'bypass, bypass revision', 'bypass revision', 'angioplasty, stent, DVA', 'angioplasty', 'endarterectomy', 'stent, thrombectomy', 'bypass, bypass revision', 'stent, endarterectomy', 'bypass', 'angioplasty, bypass', 'DVA', 'angioplasty, stent, endarterectomy', 'angioplasty, stent']
 
 Record ID:
 ['T21-2', 'T21-3', 'T21-4', 'T21-5', 'T21-7', 'T21-9', 'T21-10', 'T21-12', 'T21-13', 'T21-14', 'T21-15', 'T21-16', 'T21-17', 'T21-18', 'T21-19', 'T21-22', 'T21-23', 'T21-24', 'T21-25', 'T21-26', 'T21-27', 'T21-28', 'T21-29', 'T21-30', 'T21-31', 'T21-32', 'T21-33', 'T21-34', 'T21-35', 'T21-36', 'T21-37', 'T21-39', 'T21-40', 'T21-41', 'T21-42', 'T21-43', 'T21-44', 'T21-45', 'T21-46', 'T21-47', 'T21-48', 'T21-49', 'T21-50', 'T21-52', 'T21-53', 'T21-54', 'T21-55', 'T21-57', 'T21-58', 'T21-59', 'T21-60', 'T21-61', 'T21-62', 'T21-63', 'T21-64', 'T21-65', 'T21-66', 'T21-67', 'T21-68', 'T21-69', 'T21-70', 'T21-56']
@@ -128,17 +125,22 @@ Statin within 24 Hours:
 ['Rosuvastatin', 'atorvastatin', 'Simvastatin', 'Pravastatin', 'Lovastatin']
 
 Cilostazol within 7 days:
-['cilostazol']
+['cilostazol', ""]
 
-BP prior to blood draw:
+BP prior to blood draw_left:
 ['Not taken']
-min value 60/40
-max value 250/200
+min value 60
+max value 250
+
+BP prior to blood draw_right:
+['Not taken']
+min value 40
+max value 200
 
 Reaction Time (R) in min:
 ['>17.0', 'inconclusive', '`0.3', '*', '>17', '> 17.0']
 min value 0.9
-max value 60.3
+max value 17
 
 Lysis at 30 min (LY30) in %:
 ['inconclusive', 'none', 'not available', '*', 'inconclusive machine error', 'inconclusive ']
@@ -146,9 +148,9 @@ min value 0
 max value 19.1
 
 CRT Max amplitude (MA) in mm:
-['<40.0', '>75.0', '6..1', 'inconclusive', '*', 'inconclusive machine error']
+['<40.0', '>75.0', '6..1', 'inconclusive', '*', 'inconclusive machine error', '637']
 min value 40
-max value 637
+max value 75
 
 CFF Max Amplitude( MA) in mm:
 ['>52.0', '<4.0', 'inconclusive', '27.8`', '>52', '*', 'inconclusive machine error']
@@ -246,9 +248,9 @@ min value 0.8
 max value 230.0
 
 aPTT:
-['>150', datetime.time(23, 50), '>150.0']
+['>150', '430' , '>150.0']
 min value 13.3
-max value 430
+max value 150
 
 PT value:
 []
@@ -289,7 +291,8 @@ Event Name:
 ['Event reporting 1', 'Event reporting 2', 'Event reporting 3', 'Event reporting 4', 'Event reporting 5', 'Event reporting 6', 'Readmission 1', 'Event Reporting 1', 'Event Reporting 2', 'Readmission 2']
 
 Date of Event:
-[Timestamp('2021-10-22 00:00:00'), Timestamp('2021-10-29 00:00:00'), Timestamp('2021-03-11 00:00:00'), Timestamp('2021-04-05 00:00:00'), Timestamp('2021-04-12 00:00:00'), Timestamp('2021-05-05 00:00:00'), Timestamp('2021-06-02 00:00:00'), Timestamp('2021-06-24 00:00:00'), Timestamp('2022-09-16 00:00:00'), Timestamp('2021-05-28 00:00:00'), Timestamp('2021-07-16 00:00:00'), Timestamp('2021-07-23 00:00:00'), Timestamp('2021-07-27 00:00:00'), Timestamp('2021-08-02 00:00:00'), Timestamp('2022-03-21 00:00:00'), Timestamp('2021-08-17 00:00:00'), Timestamp('2021-10-26 00:00:00'), Timestamp('2021-06-21 00:00:00'), Timestamp('2021-08-01 00:00:00'), Timestamp('2021-08-04 00:00:00'), Timestamp('2021-12-23 00:00:00'), Timestamp('2021-08-12 00:00:00'), Timestamp('2021-09-04 00:00:00'), Timestamp('2021-12-27 00:00:00'), Timestamp('2021-09-20 00:00:00'), Timestamp('2021-11-02 00:00:00'), Timestamp('2021-12-22 00:00:00'), Timestamp('2022-05-13 00:00:00'), Timestamp('2021-12-05 00:00:00'), Timestamp('2022-04-15 00:00:00'), Timestamp('2022-05-09 00:00:00'), Timestamp('2022-10-03 00:00:00'), Timestamp('2022-10-11 00:00:00'), Timestamp('2022-02-08 00:00:00'), Timestamp('2021-01-11 00:00:00'), Timestamp('2022-03-04 00:00:00'), Timestamp('2022-03-30 00:00:00'), Timestamp('2022-05-05 00:00:00'), Timestamp('2022-04-22 00:00:00'), Timestamp('2022-09-15 00:00:00'), Timestamp('2022-06-03 00:00:00'), Timestamp('2022-07-22 00:00:00'), Timestamp('2022-10-31 00:00:00'), Timestamp('2023-01-28 00:00:00'), Timestamp('2022-07-14 00:00:00'), Timestamp('2022-08-29 00:00:00'), Timestamp('2022-09-06 00:00:00'), Timestamp('2022-12-28 00:00:00'), Timestamp('2022-08-23 00:00:00'), Timestamp('2023-03-03 00:00:00'), Timestamp('2023-07-18 00:00:00'), Timestamp('2023-02-14 00:00:00'), Timestamp('2022-12-31 00:00:00'), Timestamp('2023-02-15 00:00:00'), Timestamp('2023-01-23 00:00:00'), Timestamp('2023-03-31 00:00:00'), Timestamp('2023-02-08 00:00:00'), Timestamp('2023-06-21 00:00:00'), Timestamp('2023-03-17 00:00:00'), Timestamp('2023-07-06 00:00:00'), Timestamp('2023-04-17 00:00:00'), Timestamp('2023-05-02 00:00:00'), Timestamp('2023-07-25 00:00:00'), Timestamp('2023-06-20 00:00:00'), Timestamp('2023-07-14 00:00:00'), Timestamp('2023-07-11 00:00:00'), Timestamp('2023-06-13 00:00:00'), Timestamp('2023-06-01 00:00:00'), Timestamp('2023-07-28 00:00:00'), Timestamp('2023-07-07 00:00:00'), Timestamp('2023-07-17 00:00:00')]
+min value 1
+max value 500
 
 Event Type:
 ['Bypass/Stent stenosis', 'Infection/Dehisence', 'Bypass/Stent occlusion', 'Bleeding event', 'Thrombotic event not related to stent', 'Death', 'Worsening/enlarging wound', 'Thrombotic event not related to the area intervened', 'Bypass occlusion', 'Infection/Dehiscence', 'Occlusion in the area of intervention', 'other']
