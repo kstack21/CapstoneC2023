@@ -92,7 +92,7 @@ min value 0
 max value 6
 
 ABI Right:
-['NC', '1.57 (Non-compressible) ', 'not available', 'N/A BKA', 'nc', 'non-compressible', 'none - hx AKA', 'BKA', 'not done', 'none']
+['NC', '1.57 (Non-compressible) ', 'not available', 0, 'nc', 'non-compressible', 'none - hx AKA', 'BKA', 'not done', 'none']
 min value 0.17
 max value 1.68
 
@@ -225,7 +225,7 @@ max value 85.7
 CKH R (min):
 ['>17.0', 'inconclusive', '>17', '*', 'inconclusive machine error']
 min value 1.5
-max value 63.5
+max value 17
 
 CFF MA(mm):
 ['>52.0', 'inconclusive', '>52', '26/1', '<4.0', '*', 'inconclusive machine error']
