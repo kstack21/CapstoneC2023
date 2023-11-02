@@ -1,0 +1,61 @@
+{
+    "0": 
+    [
+        "Baseline",
+        "Enrollment + Baseline"
+    ],
+
+    "1":
+    [
+        "6hr Post", 
+        "PO Day 1 ( 4-36 hours)",
+        "Post Op day 1 (4-36 hours)"
+    ],
+
+    "2":
+    [
+        "PO Day 2", 
+        "Post op Day 2( if applicable)"
+    ],
+
+    "3":
+    [
+        "PO Day 3",
+        "Post Op Day 3( if applicable)"
+    ],
+
+    "4":
+    [
+        "PO Day 4", 
+        "Post Op Day 4 ( if applicable)"
+    ],
+
+    "5":
+    [
+        "PO day 5", 
+        "Post Op Day 5 ( if applicable)"
+    ],
+
+    "30":
+    [
+        "1M PO", 
+        "30 Day Post Procedure"
+    ],
+
+    "90":
+    [
+        "3M PO",
+        "3 Month Post procedure"
+    ],
+
+    "180":
+    [
+        "6M PO", 
+        "6 month Post Procedure",
+        "Readmission"
+    ]
+
+
+
+}
+
