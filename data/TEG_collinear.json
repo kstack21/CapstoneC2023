@@ -6,15 +6,9 @@
         "ADP MA (mm)"
     ],
     "Effects of fibrogen":
-    [
-        "ActF MA (mm)", 
-        "CFF Max Amplitude (MA) in mm", 
+    [ 
         "CFF MA (mm)",
         "CFF FLEV(mg/dl)"
-    ],
-    "Heparin effect":
-    [
-        "HKH MA (mm)"
     ],
     "Unaltered blood ":
     [
@@ -26,5 +20,15 @@
     [
         "CK R (min)", 
         "CKH R (min)"
+    ],
+    "ADP":
+    [
+        "ADP % Aggregation",
+        "ADP % Inhibition"
+    ],
+    "AA":
+    [
+        "AA % Aggregation",
+        "AA % Inhibition"
     ]
 }   
