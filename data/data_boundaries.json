@@ -10,19 +10,6 @@
 
     },
 
-    "CRT Max amplitude (MA) in mm":
-    {
-        "<40": 45,
-        ">75" : 80
-
-    },
-
-    "CFF Max Amplitude( MA) in mm":
-    {
-        ">52": 55,
-        "<4" : 3
-    },
-
     "HKH MA (mm)":
     {
         "<42" : 40,
