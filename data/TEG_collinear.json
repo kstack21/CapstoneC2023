@@ -15,8 +15,7 @@
     [
         "CRT MA(mm)", 
         "CRT Max amplitude (MA) in mm",
-        "CK MA (mm)", 
-        "ADP MA (mm)"
+        "CK MA (mm)"
     ],
     "Unaltered time to clot ":
     [
