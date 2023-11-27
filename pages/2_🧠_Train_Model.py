@@ -10,6 +10,7 @@ import json
 import re
 import base64
 import shap
+import xlsxwriter
 
 # Get higher level functions
 current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -215,11 +216,24 @@ if uploaded_file is not None:
         st.markdown(href, unsafe_allow_html=True)
 
         # create download link for training data summary
-        with pd.ExcelWriter('TrainingDataSummary.xlsx') as excel_writer:
-            numerical.to_excel(excel_writer, sheet_name='NumericalData', index=False)
-            categorical.to_excel(excel_writer, sheet_name='CategoricalData', index=False)
-        dataDownloadLink = f'<a href="data:file/xlsx;base64,{b64}" download="TrainingDataSummary.xlsx">Download Data</a>'
-        st.markdown(dataDownloadLink, unsafe_allow_html=True)
+        #with pd.ExcelWriter('TrainingDataSummary.xlsx') as excel_writer:
+            #numerical.to_excel(excel_writer, sheet_name='NumericalData', index=False)
+            #categorical.to_excel(excel_writer, sheet_name='CategoricalData', index=False)
+        #dataDownloadLink = f'<a href="data:text/vnd.ms-excel;base64,{b64}" download="TrainingDataSummary.xlsx">Download Data</a>'
+        #st.markdown(dataDownloadLink, unsafe_allow_html=True)
+        from io import BytesIO
+        from pyxlsb import open_workbook as open_xlsb
+        def to_excel(df):
+            output = BytesIO()
+            writer = pd.ExcelWriter(output, engine='xlsxwriter')
+            df.to_excel(writer, index=False, sheet_name='Sheet1')
+            workbook = writer.book
+            worksheet = writer.sheets['Sheet1'] 
+            writer.close()
+            processed_data = output.getvalue()
+            return processed_data
+        df_xlsx = to_excel(numerical)
+        st.download_button("button", df_xlsx)
 
 """
         # export just the model
