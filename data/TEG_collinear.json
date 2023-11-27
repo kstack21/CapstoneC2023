@@ -7,18 +7,19 @@
     ],
     "Effects of fibrogen":
     [ 
-        "CFF MA (mm)",
-        "CFF FLEV(mg/dl)"
+        "CFF MA(mm)",
+        "CFF FLEV(mg/dL)",
+        "CFF Max Amplitude( MA) in mm"
     ],
     "Unaltered blood ":
     [
-        "CRT MA (mm)", 
-        "CK MA (mm)", 
-        "ADP MA (mm)"
+        "CRT MA(mm)", 
+        "CRT Max amplitude (MA) in mm",
+        "CK MA (mm)"
     ],
     "Unaltered time to clot ":
     [
-        "CK R (min)", 
+        "CK R(min)", 
         "CKH R (min)"
     ],
     "ADP":
