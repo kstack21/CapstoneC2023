@@ -202,17 +202,6 @@ if uploaded_file is not None:
         best_model, best_params, score, X_train = cached_generate_model(filtered_df)
         st.text("Model trained successfully!")
 
-        joblib.dump(best_model, "just_model.pkl")
-        with open("just_model.pkl", "rb") as model_file:
-            model_binary = model_file.read()
-        
-        # Encode the model_binary in base64
-        b64 = base64.b64encode(model_binary).decode()
-        
-        # Create a download link for the model file
-        href = f'<a href="data:application/octet-stream;base64,{b64}" download="just_model.pkl">Download Model</a>'
-        st.markdown(href, unsafe_allow_html=True)
-"""
         # Save the trained model to a file (e.g., using joblib)
         joblib.dump((best_model, best_params, score), "trained_model.pkl") # This is what is being dowloaded: best_model, best_params, score
         with open("trained_model.pkl", "rb") as model_file:
@@ -223,5 +212,25 @@ if uploaded_file is not None:
         
         # Create a download link for the model file
         href = f'<a href="data:application/octet-stream;base64,{b64}" download="trained_model.pkl">Download Model</a>'
+        st.markdown(href, unsafe_allow_html=True)
+
+        # create download link for training data summary
+        with pd.ExcelWriter('TrainingDataSummary.xlsx') as excel_writer:
+            numerical.to_excel(excel_writer, sheet_name='NumericalData', index=False)
+            categorical.to_excel(excel_writer, sheet_name='CategoricalData', index=False)
+        dataDownloadLink = f'<a href="data:file/xlsx;base64,{b64}" download="TrainingDataSummary.xlsx">Download Data</a>'
+        st.markdown(dataDownloadLink, unsafe_allow_html=True)
+
+"""
+        # export just the model
+        joblib.dump(best_model, "just_model.pkl")
+        with open("just_model.pkl", "rb") as model_file:
+            model_binary = model_file.read()
+
+        # Encode the model_binary in base64
+        b64 = base64.b64encode(model_binary).decode()
+        
+        # Create a download link for the model file
+        href = f'<a href="data:application/octet-stream;base64,{b64}" download="just_model.pkl">Download Model</a>'
         st.markdown(href, unsafe_allow_html=True)
 """

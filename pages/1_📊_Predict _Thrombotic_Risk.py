@@ -31,6 +31,9 @@ st.write("""Minimum expected factors: 'Age', 'Tobacco Use', 'Hypertension', 'Mal
             'Clotting Disorder', 'Extremity', 'Artery affected', 'BMI', and 'Diabetes'""")
 
 #--------------------------Side bar--------------------------#
+# Upload training data (optional)
+training_data = st.sidebar.file_uploader("Upload Model Training Data Summary (optional)", type = ["xlsx"])
+
 # Upload model
 uploaded_model = st.sidebar.file_uploader("Upload Predictive Model", type = ["pkl"])
 
@@ -40,11 +43,14 @@ uploaded_file = st.sidebar.file_uploader("Upload Patient Data", type=["xlsx"])
 # Download 
 st.sidebar.button("Export results")
 
+#--------------------------Training Data Summary--------------------------#
+if training_data != None:
+    st.markdown("uploaded, yay")
+
 #--------------------------Patient info--------------------------#
 # Get patient data from uploaded file
 if uploaded_file != None:
     df = pd.read_excel(uploaded_file, engine="openpyxl")
-    #st.write(df)   # shows whole uploaded excel file
 
     # Patient Data Header #
     st.header(':green[Patient Data Uploaded]')
@@ -138,7 +144,6 @@ if uploaded_file != None:
             st.metric(label="Diabetes", value = temp)
         else:
             st.metric(label = ":red[Diabetes]", value = "No column named 'Diabetes'")
-
     # display thrombosis risk
     st.header(":green[Patient's Calculated Risk of Thrombosis: ]")
     st.subheader(":red[No risk calculated yet]")
