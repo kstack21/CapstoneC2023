@@ -74,8 +74,8 @@ if uploaded_file is not None:
     df = pd.read_excel(uploaded_file, engine="openpyxl")
 
     # Show data demographics
-    fig = cached_data_demographics_fig(df)
-    st.plotly_chart(fig, use_container_width=True)
+    #fig = cached_data_demographics_fig(df)
+    #st.plotly_chart(fig, use_container_width=True)
 
     # Show data description
     numerical, categorical = cached_describe_dataframe(df)
@@ -86,7 +86,7 @@ if uploaded_file is not None:
 
     #--------------------------Parameters--------------------------#
     # Preprocess data
-    df = cached_preprocess(df)
+    #df = cached_preprocess(df)
 
     # Generate model
     with st.spinner('Generating model first draft...'):
@@ -100,13 +100,43 @@ if uploaded_file is not None:
         teg_df.drop(columns=['Importance'], inplace=True)
         non_teg_df.drop(columns=['Importance'], inplace=True)
 
-
     # User selects parameters
 
-    # Load the JSON file with a list of lists of strings
-    # Replace 'your_json_file.json' with the actual path to your JSON file
-    with open('TEG_collinear.json', 'r') as json_file:
-        feature_groups = json.load(json_file)
+    # Collinear TEG factors
+    feature_groups = {
+            "Clot treatment drugs":
+            [
+                "HKH MA (mm)", 
+                "ActF MA (mm)",
+                "ADP MA (mm)"
+            ],
+            "Effects of fibrogen":
+            [ 
+                "CFF MA (mm)",
+                "CFF FLEV(mg/dl)"
+            ],
+            "Unaltered blood ":
+            [
+                "CRT MA (mm)", 
+                "CK MA (mm)", 
+                "ADP MA (mm)"
+            ],
+            "Unaltered time to clot ":
+            [
+                "CK R (min)", 
+                "CKH R (min)"
+            ],
+            "ADP":
+            [
+                "ADP % Aggregation",
+                "ADP % Inhibition"
+            ],
+            "AA":
+            [
+                "AA % Aggregation",
+                "AA % Inhibition"
+            ]
+     }   
 
     # Create a dictionary to store the feature groups
     grouped_features = {group: [] for group in feature_groups}
@@ -149,7 +179,6 @@ if uploaded_file is not None:
     with st.expander("Other parameters"):
         # Create a list of radio button labels with feature names and percentages
         st.dataframe(non_teg_df)
-    
 
     # Train optimized model
     # Train and validate model button in side bar
@@ -173,6 +202,17 @@ if uploaded_file is not None:
         best_model, best_params, score, X_train = cached_generate_model(filtered_df)
         st.text("Model trained successfully!")
 
+        joblib.dump(best_model, "just_model.pkl")
+        with open("just_model.pkl", "rb") as model_file:
+            model_binary = model_file.read()
+        
+        # Encode the model_binary in base64
+        b64 = base64.b64encode(model_binary).decode()
+        
+        # Create a download link for the model file
+        href = f'<a href="data:application/octet-stream;base64,{b64}" download="just_model.pkl">Download Model</a>'
+        st.markdown(href, unsafe_allow_html=True)
+"""
         # Save the trained model to a file (e.g., using joblib)
         joblib.dump((best_model, best_params, score), "trained_model.pkl") # This is what is being dowloaded: best_model, best_params, score
         with open("trained_model.pkl", "rb") as model_file:
@@ -184,6 +224,4 @@ if uploaded_file is not None:
         # Create a download link for the model file
         href = f'<a href="data:application/octet-stream;base64,{b64}" download="trained_model.pkl">Download Model</a>'
         st.markdown(href, unsafe_allow_html=True)
-
-            
-    #--------------------------Model performance--------------------------#
+"""

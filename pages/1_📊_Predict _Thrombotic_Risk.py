@@ -3,6 +3,8 @@ import pandas as pd
 import os
 import plotly.express as px
 import sys
+from fastapi import FastAPI
+import joblib
 
 # Get higher level functions
 current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -30,7 +32,7 @@ st.write("""Minimum expected factors: 'Age', 'Tobacco Use', 'Hypertension', 'Mal
 
 #--------------------------Side bar--------------------------#
 # Upload model
-st.sidebar.file_uploader("Upload Predictive Model", type = ["pkl"])
+uploaded_model = st.sidebar.file_uploader("Upload Predictive Model", type = ["pkl"])
 
 # Upload patient's data
 uploaded_file = st.sidebar.file_uploader("Upload Patient Data", type=["xlsx"])
@@ -167,8 +169,11 @@ else:
     st.subheader(":red[No risk calculated yet]")
 
 #--------------------------Model info--------------------------#
+#app = FastAPI()
+#model = joblib.load(uploaded_model)
 
 
+"""
 #--------------------------Prediction--------------------------#
 # Get data from folder
 data_path = path_back_to(["data","DummyResult.xlsx"])
@@ -185,3 +190,4 @@ st.subheader("Predictive Model Details:")
 # Plot pie chart
 fig = px.pie(largest_contributor, names='Category', values='Value', title='Contribution of Top 10 Influential Factors')
 st.plotly_chart(fig, use_container_width=True)
+"""
