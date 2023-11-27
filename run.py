@@ -15,3 +15,6 @@ import json
 import re
 import base64
 import shap
+
+if __name__ == '__main__':
+    subprocess.run("streamlit run Welcome.py")
