@@ -14,27 +14,6 @@ from sklearn.model_selection import train_test_split, KFold, GridSearchCV
 from sklearn.preprocessing import OrdinalEncoder, RobustScaler, MinMaxScaler
 from sklearn.pipeline import Pipeline
 
-# Import json values
-# Get the current working directory (base directory)
-base_directory = os.getcwd()
-
-# Boundary values
-filename = 'data_boundaries.json'
-file_path = os.path.join(base_directory, 'data', filename)
-with open(file_path, 'r') as json_file:
-    boundaries = json.load(json_file)
-
-# Define the filename
-filename = 'timepoints.json'
-file_path = os.path.join(base_directory, 'data', filename)
-with open(file_path, 'r') as json_file:
-    timepoints = json.load(json_file)
-    
-#Collinear teg
-filename = 'TEG_collinear.json'
-file_path = os.path.join(base_directory, 'data', filename)
-with open(file_path, 'r') as json_file:
-    collinearity = json.load(json_file)
 
 
 def merge_events_count(baseline_df, tegValues_df, events_df):
@@ -52,13 +31,15 @@ def merge_events_count(baseline_df, tegValues_df, events_df):
 
     return baseline_df, tegValues_df
 
-def transform_data(baseline_df, tegValues_df):
+def transform_data(baseline_df, tegValues_df, boundaries, timepoints):
     """
     Transform and clean the given baseline and TEG values DataFrames.
 
     Parameters:
     - baseline_df (pd.DataFrame): DataFrame containing baseline data.
     - tegValues_df (pd.DataFrame): DataFrame containing TEG values data.
+    - boundaries (dictionary): Boundary parameters for TEG values.
+    - timepoints(dictionary): Meaning of timestamps in numerical values.
 
     Returns:
     - clean_baseline_df (pd.DataFrame): Transformed and cleaned baseline DataFrame.
@@ -592,11 +573,9 @@ def feature_importance(best_pipeline, X):
     return importance_df, shap_values
 
 
-def user_options(teg_df, tegValues, new_columns, importance_df_TEG, user_extend_data = False):
-    """
-    teg_df can be: user_extend_data, or tegValues_df
-    """
-    user_TEG_df = teg_df.copy()
+def user_options(extended_df, tegValues, new_columns, importance_df_TEG, user_extend_data = False):
+   
+    user_TEG_df = extended_df.copy()
 
 
     # Keep only the most important values from teg. No need for extra created ones
@@ -628,7 +607,7 @@ def user_options(teg_df, tegValues, new_columns, importance_df_TEG, user_extend_
 
     return columns_to_keep
 
-def user_selection(selected_features, columns_to_keep):
+def user_selection(selected_features, columns_to_keep, collinearity):
 
     # Extract all values from selected_features and collinearity
     selected_features_values = list(selected_features.values())
@@ -642,7 +621,3 @@ def user_selection(selected_features, columns_to_keep):
     columns_to_drop = [column for column in columns_to_keep.keys() if any(column.startswith(prefix) for prefix in prefix_to_drop)]
 
     return columns_to_drop
-
-    model2_df = user_TEG_df.copy()
-    model2_df.drop(columns=columns_to_drop, inplace=True)
-    best_model_TEG2, TEG2_train = train_model(model2_df, 'Events', ['Record ID'])

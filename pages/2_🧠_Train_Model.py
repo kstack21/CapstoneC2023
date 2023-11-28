@@ -15,12 +15,41 @@ import shap
 current_directory = os.path.dirname(os.path.abspath(__file__))
 parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
-from functions import data_demographics_fig, describe_dataframe, feature_importance
-from preprocessing import preprocess, split_df
-from models_classifier import generate_model
+from functions import *
 
 
-#--------------------------Functions--------------------------#
+
+#--------------------------Cached Functions--------------------------#
+
+@st.cache_data
+def import_json_values():
+    # Import json values
+    # Get the current working directory (base directory)
+    base_directory = os.getcwd()
+
+    # Boundary values
+    filename = 'data_boundaries.json'
+    file_path = os.path.join(base_directory, 'data', filename)
+    with open(file_path, 'r') as json_file:
+        boundaries = json.load(json_file)
+
+    # Define the filename
+    filename = 'timepoints.json'
+    file_path = os.path.join(base_directory, 'data', filename)
+    with open(file_path, 'r') as json_file:
+        timepoints = json.load(json_file)
+        
+    #Collinear teg
+    filename = 'TEG_collinear.json'
+    file_path = os.path.join(base_directory, 'data', filename)
+    with open(file_path, 'r') as json_file:
+        collinearity = json.load(json_file)
+
+    return boundaries, timepoints, collinearity
+
+# Load general data
+boundaries, timepoints, collinearity = import_json_values()
+
 @st.cache_data
 def cached_data_demographics_fig(df):
     fig = data_demographics_fig(df)
@@ -47,7 +76,8 @@ def train_model():
     model = "YourTrainedModel"
     return model
 
-#     return shap_values
+
+
 
 
 #--------------------------Page description--------------------------#
@@ -64,117 +94,117 @@ st.markdown("""This page allows user to train a model
             selecting model algorithms, and adjusting training settings. 
             Start by uploding a dataset with TEG data on the left column.""")
 
-#--------------------------Side bar--------------------------#
+
+#--------------------------Side bar: Upload data --------------------------#
 # Upload patient's data (Excel format only) button
 uploaded_file = st.sidebar.file_uploader("Upload Data Set of Patient Data (XLSX)", type=["xlsx"])
 
 #--------------------------Data description--------------------------#
 if uploaded_file is not None:
     # Read the uploaded Excel file into a Pandas DataFrame
-    df = pd.read_excel(uploaded_file, engine="openpyxl")
+    data_frames = pd.read_excel(uploaded_file, engine="openpyxl")
+    sheet_names = ['Baseline', 'TEG Values', 'Events']  # Replace with your sheet names
+
+    # Access each sheet's data using the sheet name as the key
+    baseline_df = data_frames[sheet_names[0]]
+    tegValues_df = data_frames[sheet_names[1]]
+    events_df = data_frames[sheet_names[2]]
+
+    # Merge tables
+    baseline_df, tegValues_df = merge_events_count(baseline_df, tegValues_df, events_df)
+
+    # Perform data transformations
+    clean_baseline_df, clean_TEG_df, tegValues = transform_data(baseline_df, tegValues_df, boundaries, timepoints)
 
     # Show data demographics
-    fig = cached_data_demographics_fig(df)
+    fig = visualize_data(clean_baseline_df, clean_TEG_df)
     st.plotly_chart(fig, use_container_width=True)
 
     # Show data description
-    numerical, categorical = cached_describe_dataframe(df)
-    with st.expander("Analysis of numerical values"):
-        st.dataframe(numerical)
-    with st.expander("Analysis of categorical values"):
-        st.dataframe(categorical)
 
     #--------------------------Parameters--------------------------#
-    # Preprocess data
-    df = cached_preprocess(df)
+    #------------------------Side bar:  Toggle user chooses to extend data------------------------#
+    user_extend_data = st.toggle("Calculate rates", value=True)
 
+    if user_extend_data:
+        extended_df, new_columns  = extend_df (clean_TEG_df, tegValues)
+    else:
+        new_columns = None
+        extended_df = clean_TEG_df.copy()
+
+    
     # Generate model
     with st.spinner('Generating model first draft...'):
         # Make models to find contribution of each parameter
-        best_model, best_params, accuracy, X_train = cached_generate_model(df)
-        
+        best_model_baseline, baseline_train = train_model(clean_baseline_df, 'Events', ['Record ID'])
+        best_model_TEG1, TEG1_train = train_model(extended_df, 'Events', ['Record ID'])
+
         # Get feature importances from the XGBoost model in the pipeline
-        feature_importance_df = feature_importance(best_model, X_train)
+        importance_df_bsaeline, shap_values_baseline  = feature_importance(best_model_baseline, baseline_train)
+        importance_df_TEG1, shap_values_TEG1 = feature_importance(best_model_TEG1, TEG1_train)
 
-        teg_df , non_teg_df = split_df(feature_importance_df)
-        teg_df.drop(columns=['Importance'], inplace=True)
-        non_teg_df.drop(columns=['Importance'], inplace=True)
+    # Plot SHAP summary plot
+    shap.summary_plot(shap_values_baseline, baseline_train, plot_type="bar", show= False)
+    shap.summary_plot(shap_values_TEG1, TEG1_train, plot_type="bar", show= False)
 
+    # Get list of parameters for user to select
+    columns_to_keep = user_options(extended_df, tegValues, new_columns, importance_df_TEG1, user_extend_data)
+    user_TEG_df = extended_df.copy()
+    user_TEG_df = user_TEG_df[columns_to_keep.keys()] # Keep only non repeated values
 
-    # User selects parameters
-
-    # Load the JSON file with a list of lists of strings
-    # Replace 'your_json_file.json' with the actual path to your JSON file
-    with open('TEG_collinear.json', 'r') as json_file:
-        feature_groups = json.load(json_file)
-
-    # Create a dictionary to store the feature groups
-    grouped_features = {group: [] for group in feature_groups}
-
-    # Get all the features
-    features = teg_df['Feature'].values.tolist()
-
-    # Group the features based on the information in the JSON file
-    # feature_groups = {"group name":[teg value 1, teg value2...]}
-    for group, teg_values in feature_groups.items():
-        for teg_value in teg_values:
-            for f in features:
-                if f.startswith(teg_value):
-                    grouped_features[group].append(f)
-                    
-
+    # User selects non collinear parameters
     st.subheader("Select one of the related parameters")
-
-    # Create an empty dictionary to store selected features for each group
+    # Create empty dictionary to hold selection
     selected_features = {}
 
-    # Iterate over feature groups and create expanders
-    for title, group in grouped_features.items():
-        
-        with st.expander(f"{title}"):
+    # Use the dictionary with columns to keep to show user their options
+    for group_name , elements in collinearity.items():
+        with st.expander(f"{group_name}"):
             
-            # Create a list of radio button labels with feature names and percentages
-            radio_labels = [f"{row['Feature']} ({row['Percentage Contribution']}%)" for _, row in teg_df.iterrows() if row['Feature'] in group]
+            # Filter keys based on prefixes
+            filtered_keys = [key for key in columns_to_keep.keys() if any(key.startswith(prefix) for prefix in elements)]
+
+            # Create a list of strings by appending keys with values multiplied by 100
+            radio_labels = [f"{key} ({round(columns_to_keep[key] * 100, 2)}%)" for key in filtered_keys]
 
             # Create a radio button to select a feature from the group
-            selected_feature = st.radio("", radio_labels, key=group)
-            
-            # Convert the group list to a tuple and store the selected feature in the dictionary
-            selected_features[title] = selected_feature
+            selected_feature = st.radio("", radio_labels, key=group_name)
+            selected_feature = radio_labels[0]
 
- 
+            # Convert the group list to a tuple and store the selected feature in the dictionary
+            selected_features[group_name] = selected_feature
+
+    # Display selection to user
     st.write("Parameters selected by the user")
     st.write(selected_features)
         
     with st.expander("Other parameters"):
         # Create a list of radio button labels with feature names and percentages
-        st.dataframe(non_teg_df)
+        st.write("Do we still want to show this?")
     
 
     # Train optimized model
-    # Train and validate model button in side bar
+    # #------------------------Side bar: Train and validate new model -----------------------#
     if st.sidebar.button("Train and validate"):
 
-        # Create new dataframe
-        selected_features_list = []
+        columns_to_drop = user_selection(selected_features, columns_to_keep, collinearity)
 
-        # Process the values in the dictionary containing items selected by user. Convert to list
-        for key, value in selected_features.items():
-            # Remove patterns matching (float%)
-            selected_features_list.append(re.sub(r'\(\d+\.\d+%\)', '', value).strip())
-        
-        # Extract the features mentioned in the "Feature" column of non_teg_df
-        non_teg_features = non_teg_df['Feature'].tolist()
-        selected_features_list =  selected_features_list + non_teg_features + ['Upcoming_event']
-        # Filter the columns of the original DataFrame based on the selected features
-        filtered_df = df[selected_features_list]
+        model2_df = user_TEG_df.copy()
+        model2_df.drop(columns=columns_to_drop, inplace=True)
 
-        st.text("Training the model...")
-        best_model, best_params, score, X_train = cached_generate_model(filtered_df)
-        st.text("Model trained successfully!")
+        with st.spinner('Generating optimized model...'):
+            # Make model
+            best_model_TEG2, TEG2_train = train_model(model2_df, 'Events', ['Record ID'])
 
-        # Save the trained model to a file (e.g., using joblib)
-        joblib.dump((best_model, best_params, score), "trained_model.pkl") # This is what is being dowloaded: best_model, best_params, score
+            # New feature importance
+            importance_df_TEG2, shap_values_TEG2 = feature_importance(best_model_TEG2, TEG2_train)
+
+        # Plot SHAP summary plot
+        shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False)
+
+
+        # Save the trained model to a file (using joblib)
+        joblib.dump((best_model_TEG2, TEG2_train), "trained_model.pkl")
         with open("trained_model.pkl", "rb") as model_file:
             model_binary = model_file.read()
         
