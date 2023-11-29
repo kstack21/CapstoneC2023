@@ -26,7 +26,7 @@ st.set_page_config(
 st.set_option('deprecation.showPyplotGlobalUse', False)
 # Main layout
 st.title("Train model")
-st.markdown("""This page allows user to train a model 
+st.markdown("""This page allows you to train a model 
             and fine-tune its parameters. 
             It provides options for uploading new data, 
             selecting model algorithms, and adjusting training settings. 
@@ -163,7 +163,6 @@ if uploaded_file is not None:
         best_model_baseline, baseline_train, baseline_score, importance_df_bsaeline, shap_values_baseline = train_model_cached(clean_baseline_df, 'Events', ['Record ID'])
         best_model_TEG1, TEG1_train, TEG1_score, importance_df_TEG1, shap_values_TEG1 = train_model_cached(extended_df, 'Events', ['Record ID'])
 
-      
     # Plot SHAP summary plot
     st.pyplot(shap.summary_plot(shap_values_baseline, baseline_train, plot_type="bar", show= False))
     st.pyplot(shap.summary_plot(shap_values_TEG1, TEG1_train, plot_type="bar", show= False))
@@ -212,7 +211,9 @@ if uploaded_file is not None:
             # Make model and find feature importance
             best_model_TEG2, TEG2_train, TEG2_score, importance_df_TEG2, shap_values_TEG2 = train_model_cached(model2_df, 'Events', ['Record ID'])
 
-           
+        # show model score
+        st.table(TEG2_score)
+
         # Plot SHAP summary plot
         st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False))
 

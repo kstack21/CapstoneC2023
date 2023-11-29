@@ -402,11 +402,11 @@ def visualize_data(clean_baseline_df, clean_TEG_df):
     fig_df = clean_baseline_df.copy()
 
     # Define custom colors
-    male_colors = ['#d9ed92', '#99d98c'] 
-    white_colors = ['#184e77', '#1a759f'] 
-    events_colors = '#1a759f'
-    age_histogram_color = '#52b69a' 
-    bmi_histogram_color = '#1e6091'
+    male_colors = ['#676b76', '#efc2af'] 
+    white_colors = ['#592528', '#2655e4'] 
+    events_colors = '#49230f'
+    age_histogram_color = '#efd942' 
+    bmi_histogram_color = '#67722f'
 
     # Count binary values in the "Male" column
     male_counts = fig_df['Is Male'].value_counts()
