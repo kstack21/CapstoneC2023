@@ -142,8 +142,8 @@ def download_cached(_best_model_TEG2, TEG2_train):
 # Upload patient's data (Excel format only) button
 uploaded_file = st.sidebar.file_uploader("Upload Data Set of Patient Data (XLSX)", type=["xlsx"])
 
-# Side bar:  Toggle user chooses to extend data
-user_extend_data = st.sidebar.toggle("Calculate rates", value=True, disabled= uploaded_file is not None)
+# Side bar:  Toggle user chooses to extend data (FUTURE WORK)
+user_extend_data = False
 #-------------------------- Main page--------------------------#
 if uploaded_file is not None:
     
