@@ -17,12 +17,25 @@ parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
 from functions import *
 
+#--------------------------Page description--------------------------#
+st.set_page_config(
+    page_title="Train Model",
+    page_icon="🧠",
+)
+
+# Main layout
+st.title("Train model")
+st.markdown("""This page allows user to train a model 
+            and fine-tune its parameters. 
+            It provides options for uploading new data, 
+            selecting model algorithms, and adjusting training settings. 
+            Start by uploding a dataset with TEG data on the left column.""")
 
 
 #--------------------------Cached Functions--------------------------#
 
 @st.cache_data
-def import_json_values():
+def import_json_values_cached():
     # Import json values
     # Get the current working directory (base directory)
     base_directory = os.getcwd()
@@ -48,67 +61,19 @@ def import_json_values():
     return boundaries, timepoints, collinearity
 
 # Load general data
-boundaries, timepoints, collinearity = import_json_values()
+boundaries, timepoints, collinearity = import_json_values_cached()
 
 @st.cache_data
-def cached_data_demographics_fig(df):
-    fig = data_demographics_fig(df)
-    return fig
-
-@st.cache_data
-def cached_describe_dataframe(df):
-    numerical, categorical = describe_dataframe(df)
-    return numerical, categorical
-
-@st.cache_data
-def cached_preprocess(df):
-    df = preprocess(df)
-    return df
-
-@st.cache_resource
-def cached_generate_model(df):
-    best_model, best_params, accuracy, X_train = generate_model(df)
-    return best_model, best_params, accuracy, X_train
-
-# Define a function to train a simple model (you can replace this with your actual model training code)
-def train_model():
-    # Here, you can replace this with your model training logic
-    model = "YourTrainedModel"
-    return model
-
-
-
-
-
-#--------------------------Page description--------------------------#
-st.set_page_config(
-    page_title="Train Model",
-    page_icon="🧠",
-)
-
-# Main layout
-st.title("Train model")
-st.markdown("""This page allows user to train a model 
-            and fine-tune its parameters. 
-            It provides options for uploading new data, 
-            selecting model algorithms, and adjusting training settings. 
-            Start by uploding a dataset with TEG data on the left column.""")
-
-
-#--------------------------Side bar: Upload data --------------------------#
-# Upload patient's data (Excel format only) button
-uploaded_file = st.sidebar.file_uploader("Upload Data Set of Patient Data (XLSX)", type=["xlsx"])
-
-#--------------------------Data description--------------------------#
-if uploaded_file is not None:
+def upoload_data_cached(uploaded_file):
     # Read the uploaded Excel file into a Pandas DataFrame
-    data_frames = pd.read_excel(uploaded_file, engine="openpyxl")
+    xls = pd.ExcelFile(uploaded_file, engine="openpyxl")
+
     sheet_names = ['Baseline', 'TEG Values', 'Events']  # Replace with your sheet names
 
     # Access each sheet's data using the sheet name as the key
-    baseline_df = data_frames[sheet_names[0]]
-    tegValues_df = data_frames[sheet_names[1]]
-    events_df = data_frames[sheet_names[2]]
+    baseline_df = pd.read_excel(xls, sheet_names[0])
+    tegValues_df = pd.read_excel(xls, sheet_names[1])
+    events_df = pd.read_excel(xls, sheet_names[2])
 
     # Merge tables
     baseline_df, tegValues_df = merge_events_count(baseline_df, tegValues_df, events_df)
@@ -118,13 +83,11 @@ if uploaded_file is not None:
 
     # Show data demographics
     fig = visualize_data(clean_baseline_df, clean_TEG_df)
-    st.plotly_chart(fig, use_container_width=True)
+    
+    return fig, clean_TEG_df, tegValues, clean_baseline_df
 
-    # Show data description
-
-    #--------------------------Parameters--------------------------#
-    #------------------------Side bar:  Toggle user chooses to extend data------------------------#
-    user_extend_data = st.toggle("Calculate rates", value=True)
+@st.cache_data
+def extend_data_cached(clean_TEG_df, tegValues, user_extend_data):
 
     if user_extend_data:
         extended_df, new_columns  = extend_df (clean_TEG_df, tegValues)
@@ -132,26 +95,88 @@ if uploaded_file is not None:
         new_columns = None
         extended_df = clean_TEG_df.copy()
 
+    return extended_df, new_columns
+
+@st.cache_resource
+def train_model_cached(df, target_column, drop_columns):
+    best_pipeline, X_train = train_model(df, target_column, drop_columns)
+
+    return best_pipeline, X_train
+
+@st.cache_resource
+def feature_importance_cached(best_pipeline, X):
+    importance_df, shap_values = feature_importance(best_pipeline, X)
+
+    return importance_df, shap_values
+
+@st.cache_data
+def user_options_cached(extended_df, tegValues, new_columns, importance_df_TEG1, user_extend_data):
+    columns_to_keep = user_options(extended_df, tegValues, new_columns, importance_df_TEG1, user_extend_data)
+    user_TEG_df = extended_df.copy()
+    user_TEG_df = user_TEG_df[columns_to_keep.keys()] # Keep only non repeated values
+
+    return columns_to_keep, user_TEG_df
+
+@st.cache_data
+def user_selection_cached(user_TEG_df,selected_features, columns_to_keep, collinearity):
+    columns_to_drop = user_selection(selected_features, columns_to_keep, collinearity)
+    model2_df = user_TEG_df.copy()
+    model2_df.drop(columns=columns_to_drop, inplace=True)
+
+    return model2_df
+
+@st.cache_data
+def download_cached(best_model_TEG2, TEG2_train):
+    joblib.dump((best_model_TEG2, TEG2_train), "trained_model.pkl")
+    with open("trained_model.pkl", "rb") as model_file:
+        model_binary = model_file.read()
+    
+    # Encode the model_binary in base64
+    b64 = base64.b64encode(model_binary).decode()
+    
+    # Create a download link for the model file
+    href = f'<a href="data:application/octet-stream;base64,{b64}" download="trained_model.pkl">Download Model</a>'
+        
+    return href
+
+
+#--------------------------Side bar: Upload data --------------------------#
+# Upload patient's data (Excel format only) button
+uploaded_file = st.sidebar.file_uploader("Upload Data Set of Patient Data (XLSX)", type=["xlsx"])
+
+#-------------------------- Main page--------------------------#
+if uploaded_file is not None:
+    
+    # Load data
+    fig, clean_TEG_df, tegValues, clean_baseline_df = upoload_data_cached(uploaded_file)
+    
+    # Show data description
+    st.plotly_chart(fig, use_container_width=True)
+   
+    # Side bar:  Toggle user chooses to extend data
+    user_extend_data = st.toggle("Calculate rates", value=True)
+
+    # Extend data:
+    extended_df, new_columns = extend_data_cached(clean_TEG_df, tegValues, user_extend_data)
+
     
     # Generate model
     with st.spinner('Generating model first draft...'):
         # Make models to find contribution of each parameter
-        best_model_baseline, baseline_train = train_model(clean_baseline_df, 'Events', ['Record ID'])
-        best_model_TEG1, TEG1_train = train_model(extended_df, 'Events', ['Record ID'])
+        best_model_baseline, baseline_train = train_model_cached(clean_baseline_df, 'Events', ['Record ID'])
+        best_model_TEG1, TEG1_train = train_model_cached(extended_df, 'Events', ['Record ID'])
 
         # Get feature importances from the XGBoost model in the pipeline
-        importance_df_bsaeline, shap_values_baseline  = feature_importance(best_model_baseline, baseline_train)
-        importance_df_TEG1, shap_values_TEG1 = feature_importance(best_model_TEG1, TEG1_train)
+        importance_df_bsaeline, shap_values_baseline  = feature_importance_cached(best_model_baseline, baseline_train)
+        importance_df_TEG1, shap_values_TEG1 = feature_importance_cached(best_model_TEG1, TEG1_train)
 
     # Plot SHAP summary plot
     shap.summary_plot(shap_values_baseline, baseline_train, plot_type="bar", show= False)
     shap.summary_plot(shap_values_TEG1, TEG1_train, plot_type="bar", show= False)
 
     # Get list of parameters for user to select
-    columns_to_keep = user_options(extended_df, tegValues, new_columns, importance_df_TEG1, user_extend_data)
-    user_TEG_df = extended_df.copy()
-    user_TEG_df = user_TEG_df[columns_to_keep.keys()] # Keep only non repeated values
-
+    columns_to_keep, user_TEG_df = user_options_cached(extended_df, tegValues, new_columns, importance_df_TEG1, user_extend_data)
+    
     # User selects non collinear parameters
     st.subheader("Select one of the related parameters")
     # Create empty dictionary to hold selection
@@ -187,32 +212,22 @@ if uploaded_file is not None:
     # #------------------------Side bar: Train and validate new model -----------------------#
     if st.sidebar.button("Train and validate"):
 
-        columns_to_drop = user_selection(selected_features, columns_to_keep, collinearity)
-
-        model2_df = user_TEG_df.copy()
-        model2_df.drop(columns=columns_to_drop, inplace=True)
+        # Get new dataframe with dropped values
+        model2_df = user_selection_cached(user_TEG_df,selected_features, columns_to_keep, collinearity)
 
         with st.spinner('Generating optimized model...'):
             # Make model
-            best_model_TEG2, TEG2_train = train_model(model2_df, 'Events', ['Record ID'])
+            best_model_TEG2, TEG2_train = train_model_cached(model2_df, 'Events', ['Record ID'])
 
             # New feature importance
-            importance_df_TEG2, shap_values_TEG2 = feature_importance(best_model_TEG2, TEG2_train)
+            importance_df_TEG2, shap_values_TEG2 = feature_importance_cached(best_model_TEG2, TEG2_train)
 
         # Plot SHAP summary plot
         shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False)
 
 
-        # Save the trained model to a file (using joblib)
-        joblib.dump((best_model_TEG2, TEG2_train), "trained_model.pkl")
-        with open("trained_model.pkl", "rb") as model_file:
-            model_binary = model_file.read()
-        
-        # Encode the model_binary in base64
-        b64 = base64.b64encode(model_binary).decode()
-        
-        # Create a download link for the model file
-        href = f'<a href="data:application/octet-stream;base64,{b64}" download="trained_model.pkl">Download Model</a>'
+        # Save the trained model to a file 
+        href = download_cached(best_model_TEG2, TEG2_train)
         st.markdown(href, unsafe_allow_html=True)
 
             
