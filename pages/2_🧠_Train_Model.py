@@ -81,6 +81,7 @@ def upoload_data_cached(uploaded_file):
 
     # Perform data transformations
     clean_baseline_df, clean_TEG_df, tegValues = transform_data(baseline_df, tegValues_df, boundaries, timepoints)
+    clean_baseline_df, clean_TEG_df = transform_categorical (clean_baseline_df, clean_TEG_df)
 
     # Show data demographics
     fig = visualize_data(clean_baseline_df, clean_TEG_df)

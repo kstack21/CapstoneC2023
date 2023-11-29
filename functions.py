@@ -30,7 +30,7 @@ def merge_events_count(baseline_df, tegValues_df, events_df):
 
     return baseline_df, tegValues_df
 
-def transform_data(baseline_df, tegValues_df, boundaries, timepoints):
+def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training = True):
     """
     Transform and clean the given baseline and TEG values DataFrames.
 
@@ -142,14 +142,9 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints):
     clean_baseline_df["Rutherford Score"] = pd.to_numeric(clean_baseline_df["Rutherford Score"], errors='coerce')
     clean_baseline_df["Rutherford Score"].dtypes
 
-
     # Loop through the columns and convert to numeric
     for column in tegValues:
         clean_TEG_df[column] = pd.to_numeric(clean_TEG_df[column], errors='coerce')
-
-    clean_TEG_df[tegValues].dtypes
-
-
 
     # Change timepoints from strings to ints that represent days after the operation.
 
@@ -170,8 +165,6 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints):
     # Convert ABI values to floats
     clean_baseline_df['ABI Right'] = pd.to_numeric(clean_baseline_df['ABI Right'], errors='coerce')
     clean_baseline_df['ABI left'] = pd.to_numeric(clean_baseline_df['ABI left'], errors='coerce')
-
-
 
     #### Booleans
     # Create the 'Is Male' column based on the 'sex' column
@@ -240,7 +233,6 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints):
     # Rename column
     clean_baseline_df = clean_baseline_df.rename(columns={'Tobacco Use (1 current 2 former, 3 none)': 'Tobacco Use'})
 
-
     #### Categorical nominal
     columns_to_dummy_baseline = ['Extremity',
                         'Intervention Classification']
@@ -252,10 +244,10 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints):
     clean_TEG_df = pd.get_dummies(clean_TEG_df, columns=columns_to_dummy_TEG,
                         prefix=columns_to_dummy_TEG)
 
-    # Drop unecessary columns
-    clean_baseline_df = clean_baseline_df.drop(columns=['Extremity_left']) # Because it is either right, left or bilateral
-    clean_baseline_df = clean_baseline_df.drop(columns=['Intervention Classification_Endo']) # Either endo, open or combined
-
+    if training:
+        # Drop unecessary columns
+        clean_baseline_df = clean_baseline_df.drop(columns=['Extremity_left']) # Because it is either right, left or bilateral
+        clean_baseline_df = clean_baseline_df.drop(columns=['Intervention Classification_Endo']) # Either endo, open or combined
 
     # Artery affected
 
@@ -325,6 +317,7 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints):
     clean_TEG_df.drop(columns=['Antiplatelet Therapy within 7 Days', 'Anticoagulation within 24 Hours'], inplace=True)
 
     return clean_baseline_df, clean_TEG_df, tegValues
+
 
 def extend_df (clean_TEG_df, tegValues):
     extended_df = clean_TEG_df.copy()
@@ -490,13 +483,17 @@ def train_model(df, target_column, drop_columns):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     # Create transformers for feature scaling
-    feature_scaler = RobustScaler()
     target_scaler = MinMaxScaler()
+
+    # Scale target
+    # Fit the target scaler on training target and transform both training and test target
+    y_train = target_scaler.fit_transform(y_train.values.reshape(-1, 1)).flatten()
+    y_test = target_scaler.transform(y_test.values.reshape(-1, 1)).flatten()
+
 
     # Create a pipeline
     pipeline = Pipeline([
-        ('feature_scaler', feature_scaler),  # Robust scaling for features
-        ('target_scaler', target_scaler),    # Min-Max scaling for the target
+        ('feature_scaler', RobustScaler()),  # Robust scaling for features
         ('xgb_regressor', XGBRegressor())    # XGBoost regressor
     ])
 
@@ -527,6 +524,7 @@ def train_model(df, target_column, drop_columns):
     mse_test = mean_squared_error(y_test, y_pred)
     # Calculate R-squared (R2) score
     r2_test = r2_score(y_test, y_pred)
+    print(y_test, y_pred)
 
     # Make predictions on the train data
     y_pred = best_pipeline.predict(X_train)  
@@ -534,6 +532,7 @@ def train_model(df, target_column, drop_columns):
     mse_train = mean_squared_error(y_train, y_pred)
     # Calculate R-squared (R2) score
     r2_train = r2_score(y_train, y_pred)
+    print(y_train, y_pred)
     
     score = {"mse test":mse_test, "r2 test": r2_test, "mse train": mse_train, "r2 train": r2_train}
 
