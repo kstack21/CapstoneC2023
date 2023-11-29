@@ -13,8 +13,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split, KFold, GridSearchCV
 from sklearn.preprocessing import OrdinalEncoder, RobustScaler, MinMaxScaler
 from sklearn.pipeline import Pipeline
-
-
+from sklearn.metrics import r2_score, mean_squared_error
 
 def merge_events_count(baseline_df, tegValues_df, events_df):
     # Count the number of events for each 'Record_ID' in events_df
@@ -518,17 +517,28 @@ def train_model(df, target_column, drop_columns):
     # Fit the model and perform hyperparameter tuning
     grid_search.fit(X_train, y_train)
 
+    
     # Access the best pipeline
     best_pipeline = grid_search.best_estimator_
 
     # Make predictions on the test data
     y_pred = best_pipeline.predict(X_test)  
-
     # Evaluate the model using Mean Squared Error
-    mse = mean_squared_error(y_test, y_pred)
-    print(f"Mean Squared Error on the test set: {mse}")
+    mse_test = mean_squared_error(y_test, y_pred)
+    # Calculate R-squared (R2) score
+    r2_test = r2_score(y_test, y_pred)
 
-    return best_pipeline, X_train
+    # Make predictions on the train data
+    y_pred = best_pipeline.predict(X_train)  
+    # Evaluate the model using Mean Squared Error
+    mse_train = mean_squared_error(y_train, y_pred)
+    # Calculate R-squared (R2) score
+    r2_train = r2_score(y_train, y_pred)
+    
+    score = {"mse test":mse_test, "r2 test": r2_test, "mse train": mse_train, "r2 train": r2_train}
+
+    return best_pipeline, X_train, score
+
 
 def feature_importance(best_pipeline, X):
     """

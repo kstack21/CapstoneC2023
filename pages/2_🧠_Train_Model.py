@@ -100,10 +100,10 @@ def extend_data_cached(clean_TEG_df, tegValues, user_extend_data):
 
 @st.cache_resource
 def train_model_cached(df, target_column, drop_columns):
-    best_pipeline, X_train = train_model(df, target_column, drop_columns)
+    best_pipeline, X_train, score = train_model(df, target_column, drop_columns)
 
     importance_df, shap_values = feature_importance(best_pipeline, X_train)
-    return best_pipeline, X_train, importance_df, shap_values
+    return best_pipeline, X_train, score, importance_df, shap_values
 
 
 @st.cache_data
@@ -123,8 +123,8 @@ def user_selection_cached(user_TEG_df,selected_features, columns_to_keep, collin
     return model2_df
 
 @st.cache_data
-def download_cached(best_model_TEG2, TEG2_train):
-    joblib.dump((best_model_TEG2, TEG2_train), "trained_model.pkl")
+def download_cached(_best_model_TEG2, TEG2_train):
+    joblib.dump((_best_model_TEG2, TEG2_train), "trained_model.pkl")
     with open("trained_model.pkl", "rb") as model_file:
         model_binary = model_file.read()
     
@@ -160,8 +160,8 @@ if uploaded_file is not None:
     with st.spinner('Generating model first draft...'):
 
         # Make models to find contribution of each parameter
-        best_model_baseline, baseline_train, importance_df_bsaeline, shap_values_baseline = train_model_cached(clean_baseline_df, 'Events', ['Record ID'])
-        best_model_TEG1, TEG1_train, importance_df_TEG1, shap_values_TEG1 = train_model_cached(extended_df, 'Events', ['Record ID'])
+        best_model_baseline, baseline_train, baseline_score, importance_df_bsaeline, shap_values_baseline = train_model_cached(clean_baseline_df, 'Events', ['Record ID'])
+        best_model_TEG1, TEG1_train, TEG1_score, importance_df_TEG1, shap_values_TEG1 = train_model_cached(extended_df, 'Events', ['Record ID'])
 
       
     # Plot SHAP summary plot
@@ -188,7 +188,6 @@ if uploaded_file is not None:
 
             # Create a radio button to select a feature from the group
             selected_feature = st.radio("", radio_labels, key=group_name)
-            selected_feature = radio_labels[0]
 
             # Convert the group list to a tuple and store the selected feature in the dictionary
             selected_features[group_name] = selected_feature
@@ -211,11 +210,11 @@ if uploaded_file is not None:
 
         with st.spinner('Generating optimized model...'):
             # Make model and find feature importance
-            best_model_TEG2, TEG2_train, importance_df_TEG2, shap_values_TEG2 = train_model_cached(model2_df, 'Events', ['Record ID'])
+            best_model_TEG2, TEG2_train, TEG2_score, importance_df_TEG2, shap_values_TEG2 = train_model_cached(model2_df, 'Events', ['Record ID'])
 
            
         # Plot SHAP summary plot
-        shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False)
+        st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False))
 
 
         # Save the trained model to a file 
