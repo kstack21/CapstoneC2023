@@ -21,8 +21,9 @@ from functions import *
 st.set_page_config(
     page_title="Train Model",
     page_icon="🧠",
+    #showPyplotGlobalUse = False,
 )
-
+st.set_option('deprecation.showPyplotGlobalUse', False)
 # Main layout
 st.title("Train model")
 st.markdown("""This page allows user to train a model 
@@ -101,13 +102,9 @@ def extend_data_cached(clean_TEG_df, tegValues, user_extend_data):
 def train_model_cached(df, target_column, drop_columns):
     best_pipeline, X_train = train_model(df, target_column, drop_columns)
 
-    return best_pipeline, X_train
+    importance_df, shap_values = feature_importance(best_pipeline, X_train)
+    return best_pipeline, X_train, importance_df, shap_values
 
-@st.cache_resource
-def feature_importance_cached(best_pipeline, X):
-    importance_df, shap_values = feature_importance(best_pipeline, X)
-
-    return importance_df, shap_values
 
 @st.cache_data
 def user_options_cached(extended_df, tegValues, new_columns, importance_df_TEG1, user_extend_data):
@@ -144,6 +141,8 @@ def download_cached(best_model_TEG2, TEG2_train):
 # Upload patient's data (Excel format only) button
 uploaded_file = st.sidebar.file_uploader("Upload Data Set of Patient Data (XLSX)", type=["xlsx"])
 
+# Side bar:  Toggle user chooses to extend data
+user_extend_data = st.sidebar.toggle("Calculate rates", value=True, disabled= uploaded_file is not None)
 #-------------------------- Main page--------------------------#
 if uploaded_file is not None:
     
@@ -152,9 +151,6 @@ if uploaded_file is not None:
     
     # Show data description
     st.plotly_chart(fig, use_container_width=True)
-   
-    # Side bar:  Toggle user chooses to extend data
-    user_extend_data = st.toggle("Calculate rates", value=True)
 
     # Extend data:
     extended_df, new_columns = extend_data_cached(clean_TEG_df, tegValues, user_extend_data)
@@ -162,17 +158,15 @@ if uploaded_file is not None:
     
     # Generate model
     with st.spinner('Generating model first draft...'):
+
         # Make models to find contribution of each parameter
-        best_model_baseline, baseline_train = train_model_cached(clean_baseline_df, 'Events', ['Record ID'])
-        best_model_TEG1, TEG1_train = train_model_cached(extended_df, 'Events', ['Record ID'])
+        best_model_baseline, baseline_train, importance_df_bsaeline, shap_values_baseline = train_model_cached(clean_baseline_df, 'Events', ['Record ID'])
+        best_model_TEG1, TEG1_train, importance_df_TEG1, shap_values_TEG1 = train_model_cached(extended_df, 'Events', ['Record ID'])
 
-        # Get feature importances from the XGBoost model in the pipeline
-        importance_df_bsaeline, shap_values_baseline  = feature_importance_cached(best_model_baseline, baseline_train)
-        importance_df_TEG1, shap_values_TEG1 = feature_importance_cached(best_model_TEG1, TEG1_train)
-
+      
     # Plot SHAP summary plot
-    shap.summary_plot(shap_values_baseline, baseline_train, plot_type="bar", show= False)
-    shap.summary_plot(shap_values_TEG1, TEG1_train, plot_type="bar", show= False)
+    st.pyplot(shap.summary_plot(shap_values_baseline, baseline_train, plot_type="bar", show= False))
+    st.pyplot(shap.summary_plot(shap_values_TEG1, TEG1_train, plot_type="bar", show= False))
 
     # Get list of parameters for user to select
     columns_to_keep, user_TEG_df = user_options_cached(extended_df, tegValues, new_columns, importance_df_TEG1, user_extend_data)
@@ -216,12 +210,10 @@ if uploaded_file is not None:
         model2_df = user_selection_cached(user_TEG_df,selected_features, columns_to_keep, collinearity)
 
         with st.spinner('Generating optimized model...'):
-            # Make model
-            best_model_TEG2, TEG2_train = train_model_cached(model2_df, 'Events', ['Record ID'])
+            # Make model and find feature importance
+            best_model_TEG2, TEG2_train, importance_df_TEG2, shap_values_TEG2 = train_model_cached(model2_df, 'Events', ['Record ID'])
 
-            # New feature importance
-            importance_df_TEG2, shap_values_TEG2 = feature_importance_cached(best_model_TEG2, TEG2_train)
-
+           
         # Plot SHAP summary plot
         shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False)
 
