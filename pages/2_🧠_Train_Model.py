@@ -123,8 +123,8 @@ def user_selection_cached(user_TEG_df,selected_features, columns_to_keep, collin
     return model2_df
 
 @st.cache_data
-def download_cached(best_model_TEG2, TEG2_train):
-    joblib.dump((best_model_TEG2, TEG2_train), "trained_model.pkl")
+def download_cached(_best_model_TEG2, TEG2_train):
+    joblib.dump((_best_model_TEG2, TEG2_train), "trained_model.pkl")
     with open("trained_model.pkl", "rb") as model_file:
         model_binary = model_file.read()
     
@@ -188,7 +188,6 @@ if uploaded_file is not None:
 
             # Create a radio button to select a feature from the group
             selected_feature = st.radio("", radio_labels, key=group_name)
-            selected_feature = radio_labels[0]
 
             # Convert the group list to a tuple and store the selected feature in the dictionary
             selected_features[group_name] = selected_feature
@@ -215,7 +214,7 @@ if uploaded_file is not None:
 
            
         # Plot SHAP summary plot
-        shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False)
+        st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False))
 
 
         # Save the trained model to a file 
