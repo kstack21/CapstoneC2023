@@ -15,21 +15,6 @@ from sklearn.preprocessing import OrdinalEncoder, RobustScaler, MinMaxScaler
 from sklearn.pipeline import Pipeline
 
 
-## Preprocessing
-
-# Load data
-# Imports excell with patients data
-data_path = "./testData/dummy_data.xlsx"
-sheet_names = ['Baseline', 'TEG Values', 'Events']  # Replace with your sheet names
-data_frames = pd.read_excel(data_path, sheet_name=sheet_names)
-
-# Access each sheet's data using the sheet name as the key
-baseline_df = data_frames[sheet_names[0]]
-tegValues_df = data_frames[sheet_names[1]]
-events_df = data_frames[sheet_names[2]]
-
-
-# ### Merge tables
 
 def merge_events_count(baseline_df, tegValues_df, events_df):
     # Count the number of events for each 'Record_ID' in events_df
@@ -46,17 +31,20 @@ def merge_events_count(baseline_df, tegValues_df, events_df):
 
     return baseline_df, tegValues_df
 
-def transform_data(baseline_df, tegValues_df):
+def transform_data(baseline_df, tegValues_df, boundaries, timepoints):
     """
     Transform and clean the given baseline and TEG values DataFrames.
 
     Parameters:
     - baseline_df (pd.DataFrame): DataFrame containing baseline data.
     - tegValues_df (pd.DataFrame): DataFrame containing TEG values data.
+    - boundaries (dictionary): Boundary parameters for TEG values.
+    - timepoints(dictionary): Meaning of timestamps in numerical values.
 
     Returns:
     - clean_baseline_df (pd.DataFrame): Transformed and cleaned baseline DataFrame.
     - clean_TEG_df (pd.DataFrame): Transformed and cleaned TEG values DataFrame.
+    - tegValues (list): List of column names of tegValues_df excluding some values
 
     The function performs the following transformations and cleaning steps:
 
@@ -129,20 +117,6 @@ def transform_data(baseline_df, tegValues_df):
 
     # Clean EGFR and TEG data with boundary values and convert all to floats
 
-    # Import boundary values
-    # Get the current working directory (base directory)
-    base_directory = os.getcwd()
-
-    # Define the filename
-    filename = 'data_boundaries.json'
-
-    # Create the full file path by joining the base directory and filename
-    file_path = os.path.join(base_directory, 'data', filename)
-
-    with open(file_path, 'r') as json_file:
-        boundaries = json.load(json_file)
-
-
     # Replace all boundary values with their correcponding right values
     # EGFR
     egfr_column = 'EGFR (mL/min/1.73m2)'
@@ -179,17 +153,6 @@ def transform_data(baseline_df, tegValues_df):
 
 
     # Change timepoints from strings to ints that represent days after the operation.
-
-    # Define the filename
-    filename = 'timepoints.json'
-
-    # Create the full file path by joining the base directory and filename
-    file_path = os.path.join(base_directory, 'data', filename)
-
-
-    with open(file_path, 'r') as json_file:
-        timepoints = json.load(json_file)
-    
 
     # Create a reverse mapping dictionary
     reverse_mapping = {v: k for k, values in timepoints.items() for v in values}
@@ -362,25 +325,16 @@ def transform_data(baseline_df, tegValues_df):
     clean_baseline_df.drop(columns=['Artery affected','Intervention Type'], inplace=True)
     clean_TEG_df.drop(columns=['Antiplatelet Therapy within 7 Days', 'Anticoagulation within 24 Hours'], inplace=True)
 
-    return clean_baseline_df, clean_TEG_df
+    return clean_baseline_df, clean_TEG_df, tegValues
 
-
-
-
-
-def extend_df (clean_TEG_df, user_extend_data = False):
+def extend_df (clean_TEG_df, tegValues):
     extended_df = clean_TEG_df.copy()
-
-    if user_extend_data:    
-        # Sort the DataFrame by "Record ID" and "Visit Timepoint"
-        extended_df= extended_df.sort_values(by=["Record ID", "Days from operation"])
-        extended_df[["Record ID", "Days from operation"]]
-
-
-# In[56]:
+   
+    # Sort the DataFrame by "Record ID" and "Visit Timepoint"
+    extended_df= extended_df.sort_values(by=["Record ID", "Days from operation"])
+    extended_df[["Record ID", "Days from operation"]]
 
 
-if user_extend_data:
     # Group by 'Record ID'
     grouped = extended_df.groupby('Record ID')
 
@@ -392,11 +346,6 @@ if user_extend_data:
 
     extended_df[["Record ID", "Days from operation", "Days Diff"]]
 
-
-# In[57]:
-
-
-if user_extend_data:
     new_columns = []
     # Iterate TEG values
     for value in tegValues:
@@ -418,197 +367,105 @@ if user_extend_data:
     extended_df.bfill(inplace=True)
 
 
-# In[58]:
-
-
-if user_extend_data:
-    extended_df[new_columns]
-
-
-# In[59]:
-
-
-if user_extend_data:
     # Drop column with diff in dates
     extended_df.drop(columns=["Days Diff"], inplace = True)
 
+    return extended_df, new_columns
 
-# In[60]:
+def visualize_data(clean_baseline_df, clean_TEG_df):
+    """
+    Visualize key statistics and distributions of the given cleaned baseline and TEG values DataFrames.
 
+    Parameters:
+    - clean_baseline_df (pd.DataFrame): Cleaned baseline DataFrame.
+    - clean_TEG_df (pd.DataFrame): Cleaned TEG values DataFrame.
 
-if user_extend_data:
-    # Save in excel
-    excel_file = "./testData/extended_data.xlsx"
+    Returns:
+    - fig (plotly.graph_objs.Figure): Plotly Figure object containing visualizations.
 
-    # Create an Excel writer object
-    with pd.ExcelWriter(excel_file, engine='xlsxwriter') as writer:
-        # Write each DataFrame to a different Excel sheet
-        extended_df.to_excel(writer, sheet_name='TEG values', index=False)
-        clean_baseline_df.to_excel(writer, sheet_name='Baseline', index=False)
+    The function generates visualizations including:
+    1. Gender Distribution Pie Chart: Displays the distribution of gender in the dataset.
+    2. Ethnicity Distribution Pie Chart: Displays the distribution of ethnicity in the dataset.
+    3. Thrombotic Event Histogram: Displays the distribution of thrombotic events.
+    4. BMI Histogram: Displays the distribution of BMI (Body Mass Index).
+    5. Age Histogram: Displays the distribution of patient ages.
+    6. Data Summary Table: Provides a summary of unique patients and total data points.
 
+    Custom colors are used for visualizations, and the function utilizes the Plotly library to create subplots.
 
-# ## Data visualization
-# The goal of this section is to create the graphs that will be shown to the user describing the general data demographics
-# Some of the values are calculated based on the totaal number of patients in the baseline information, and some is calculated from the TEG values
-# 
-# Baseline summary:
-# - Age
-# - Gender
-# - Ethnicity
-# - BMI
-# 
-# TEG values:
-# - Number of events
-# - Total number of data points
+    Example Usage:
+    ```python
+    # Assuming clean_baseline_df and clean_TEG_df are cleaned DataFrames
+    visualization_figure = visualize_data(clean_baseline_df, clean_TEG_df)
+    ```
+    """
 
-# In[61]:
+    fig_df = clean_baseline_df.copy()
 
+    # Define custom colors
+    male_colors = ['#d9ed92', '#99d98c'] 
+    white_colors = ['#184e77', '#1a759f'] 
+    events_colors = '#1a759f'
+    age_histogram_color = '#52b69a' 
+    bmi_histogram_color = '#1e6091'
 
-fig_df = clean_baseline_df.copy()
+    # Count binary values in the "Male" column
+    male_counts = fig_df['Is Male'].value_counts()
+    male_labels = ['Male' if male_counts.index[0] else 'Female', 'Male' if not male_counts.index[0] else 'Female']
+    # Create a pie chart for "Male" with custom colors
+    sex_pie = go.Pie(labels=male_labels, values=male_counts, marker=dict(colors=male_colors))
 
+    # Count binary values in the "White" column
+    white_counts = fig_df['White'].value_counts()
+    white_labels = ['White' if white_counts.index[0] else 'Non-White', 'White' if not white_counts.index[0] else 'Non-White']
 
-# In[62]:
+    # Create a pie chart for "White" with custom colors
+    white_pie = go.Pie(labels=white_labels, values=white_counts, marker=dict(colors=white_colors))
 
+    # BMI histogram
+    bmi_hist =  go.Histogram(x=fig_df["BMI"], name="BMI", marker=dict(color=bmi_histogram_color))
 
-# Define custom colors
-male_colors = ['#d9ed92', '#99d98c'] 
-white_colors = ['#184e77', '#1a759f'] 
-events_colors = '#1a759f'
-age_histogram_color = '#52b69a' 
-bmi_histogram_color = '#1e6091'
+    # Age histogram
+    age_hist=  go.Histogram(x=fig_df["Age"], name="Age", marker=dict(color=age_histogram_color))
 
+    # The following metrics are bsed on the total number of TEG test values
+    # Copy TEG df to find metrics
+    fig_df = clean_TEG_df.copy()
 
-# In[63]:
+    # Events histogram 
+    events_hist =  go.Histogram(x=fig_df["Events"], name="Events", marker=dict(color=events_colors))
 
+    # Create a summary table
+    unique_patients = fig_df['Record ID'].nunique()
+    total_data_points = len(fig_df)
 
-# Count binary values in the "Male" column
-male_counts = fig_df['Is Male'].value_counts()
-male_labels = ['Male' if male_counts.index[0] else 'Female', 'Male' if not male_counts.index[0] else 'Female']
-# Create a pie chart for "Male" with custom colors
-sex_pie = go.Pie(labels=male_labels, values=male_counts, marker=dict(colors=male_colors))
+    data_summary = pd.DataFrame({
+        'Category': ['Unique Patients', 'Total Data Points'],
+        'Count': [unique_patients, total_data_points]
+    })
 
-# Visualize
-data = [sex_pie]
-fig = go.Figure(data = data)
-fig.update_layout(width=300, height=300)
-display(fig)
+    patients_table = go.Table(
+        header=dict(values=["Category", "Count"]),
+        cells=dict(values=[data_summary['Category'], data_summary['Count']])
+    )
 
+    # Create subplots
+    fig = make_subplots(rows=2, cols=3,
+                        specs=[[{'type':'domain'}, {'type':'domain'},{'type':'xy'}],
+                                [{'type':'xy'}, {'type':'xy'},{'type':'domain'}]],
+                        subplot_titles=['Gender Distribution', 'Ethnicity Distribution', 'Thrombotic event', 'BMI',
+                                        'Age', 'Data Summary'])
 
-# In[64]:
+    fig.add_trace(sex_pie, row=1, col=1)
+    fig.add_trace(white_pie, row=1, col=2)
+    fig.add_trace(events_hist, row=1, col=3)
+    fig.add_trace(bmi_hist, row=2, col=1)
+    fig.add_trace(age_hist, row=2, col=2)
+    fig.add_trace(patients_table, row=2, col=3)
 
+    fig.update_layout(width=900, height=600)
 
-# Count binary values in the "White" column
-white_counts = fig_df['White'].value_counts()
-white_labels = ['White' if white_counts.index[0] else 'Non-White', 'White' if not white_counts.index[0] else 'Non-White']
-
-# Create a pie chart for "White" with custom colors
-white_pie = go.Pie(labels=white_labels, values=white_counts, marker=dict(colors=white_colors))
-
-# Visualize
-data = [white_pie]
-fig = go.Figure(data = data)
-fig.update_layout(width=300, height=300)
-display(fig)
-
-
-# In[65]:
-
-
-# BMI histogram
-bmi_hist =  go.Histogram(x=fig_df["BMI"], name="BMI", marker=dict(color=bmi_histogram_color))
-
-# Visualize
-data = [bmi_hist]
-fig = go.Figure(data = data)
-fig.update_layout(width=300, height=300)
-display(fig)
-
-
-# In[66]:
-
-
-# Age histogram
-age_hist=  go.Histogram(x=fig_df["Age"], name="Age", marker=dict(color=age_histogram_color))
-
-# Visualize
-data = [age_hist]
-fig = go.Figure(data = data)
-fig.update_layout(width=300, height=300)
-display(fig)
-
-
-# The following metrics are bsed on the total number of TEG test values
-
-# In[67]:
-
-
-# Copy TEG df to find metrics
-fig_df = clean_TEG_df.copy()
-
-
-# In[68]:
-
-
-# Events histogram 
-events_hist =  go.Histogram(x=fig_df["Events"], name="Events", marker=dict(color=events_colors))
-
-# Visualize
-data = [events_hist]
-fig = go.Figure(data = data)
-fig.update_layout(width=300, height=300)
-display(fig)
-
-
-# In[69]:
-
-
-# Create a summary table
-unique_patients = fig_df['Record ID'].nunique()
-total_data_points = len(fig_df)
-
-data_summary = pd.DataFrame({
-    'Category': ['Unique Patients', 'Total Data Points'],
-    'Count': [unique_patients, total_data_points]
-})
-
-patients_table = go.Table(
-    header=dict(values=["Category", "Count"]),
-    cells=dict(values=[data_summary['Category'], data_summary['Count']])
-)
-
-# Visualize
-data = [patients_table]
-fig = go.Figure(data = data)
-fig.update_layout(width=300, height=300)
-display(fig)
-
-
-# In[70]:
-
-
-# Create subplots
-fig = make_subplots(rows=2, cols=3,
-                    specs=[[{'type':'domain'}, {'type':'domain'},{'type':'xy'}],
-                            [{'type':'xy'}, {'type':'xy'},{'type':'domain'}]],
-                    subplot_titles=['Gender Distribution', 'Ethnicity Distribution', 'Thrombotic event', 'BMI',
-                                    'Age', 'Data Summary'])
-
-fig.add_trace(sex_pie, row=1, col=1)
-fig.add_trace(white_pie, row=1, col=2)
-fig.add_trace(events_hist, row=1, col=3)
-fig.add_trace(bmi_hist, row=2, col=1)
-fig.add_trace(age_hist, row=2, col=2)
-fig.add_trace(patients_table, row=2, col=3)
-
-fig.update_layout(width=900, height=600)
-display(fig)
-
-
-# ## Train model function
-# There will be three models trained, so a function is being created now to be used multiple times.
-
-# In[71]:
-
+    return fig
 
 def train_model(df, target_column, drop_columns):
     """
@@ -673,13 +530,6 @@ def train_model(df, target_column, drop_columns):
 
     return best_pipeline, X_train
 
-
-# ## Shapeley value function
-# The shapeley value will be used in the models to determine the most important features. This is done multiple times so a function will be created
-
-# In[72]:
-
-
 def feature_importance(best_pipeline, X):
     """
     Generate SHAP (SHapley Additive exPlanations) values and a summary plot for feature importance.
@@ -723,206 +573,51 @@ def feature_importance(best_pipeline, X):
     return importance_df, shap_values
 
 
-# ## Baseline Model
-# The first model will be used to the determine the risk of someone based on their baseline information
+def user_options(extended_df, tegValues, new_columns, importance_df_TEG, user_extend_data = False):
+   
+    user_TEG_df = extended_df.copy()
 
-# ### Create model
 
-# In[73]:
+    # Keep only the most important values from teg. No need for extra created ones
+    if user_extend_data:
+        columns_to_keep = dict.fromkeys(user_TEG_df.columns.difference(tegValues + new_columns), None)
+    else:
+        columns_to_keep = dict.fromkeys(user_TEG_df.columns.difference(tegValues), None)
 
+    # Iterate through prefixes and select the most important column for each
+    for prefix in tegValues:
+        # Filter the importance_df_TEG1 for the current prefix
+        prefix_columns = importance_df_TEG[importance_df_TEG['Feature'].str.startswith(prefix)]
 
-best_model_baseline, baseline_train = train_model(clean_baseline_df, 'Events', ['Record ID'])
+        if not prefix_columns.empty:
+            # Find the column with the maximum importance for the current prefix
+            max_importance_row = prefix_columns.loc[prefix_columns['Importance'].idxmax()]
 
+            # Check if the maximum importance value is greater than 0
+            if max_importance_row['Importance'] > 0:
+                max_importance_column = max_importance_row['Feature']
+                columns_to_keep[max_importance_column] =max_importance_row['Importance']
 
-# ### Feauture importance
-# This information could be used for general information
+            else:
+                columns_to_keep[prefix] = 0
 
-# In[74]:
 
+    # Keep only non repeated values
+    user_TEG_df = user_TEG_df[columns_to_keep.keys()]
 
-importance_df_bsaeline, shap_values_baseline  = feature_importance(best_model_baseline, baseline_train)
+    return columns_to_keep
 
+def user_selection(selected_features, columns_to_keep, collinearity):
 
-# In[75]:
+    # Extract all values from selected_features and collinearity
+    selected_features_values = list(selected_features.values())
+    collinearity_values = [item for sublist in collinearity.values() for item in sublist]
 
+    # Find prefixes to drop
+    prefix_to_keep = [prefix for selection in selected_features_values for prefix in collinearity_values if selection.startswith(prefix)]
+    prefix_to_drop = list(set(collinearity_values) - set(prefix_to_keep))
 
-# Plot SHAP summary plot
-shap.summary_plot(shap_values_baseline, baseline_train, plot_type="bar", show= False)
+    # Find list of columns to drop
+    columns_to_drop = [column for column in columns_to_keep.keys() if any(column.startswith(prefix) for prefix in prefix_to_drop)]
 
-
-# ## TEG model 1
-# The first model will be used to determine the feature importance so the user can then select parameters of interest.
-
-# ### Create model
-
-# In[76]:
-
-
-best_model_TEG1, TEG1_train = train_model(extended_df, 'Events', ['Record ID'])
-
-
-# ### Feature importance
-
-# In[77]:
-
-
-importance_df_TEG1, shap_values_TEG1 = feature_importance(best_model_TEG1, TEG1_train)
-
-
-# In[78]:
-
-
-# Plot SHAP summary plot
-shap.summary_plot(shap_values_TEG1, TEG1_train, plot_type="bar", show= False)
-
-
-# ## User interface
-# Here , the user will select the features that they want to test in the next iteration of the model, based on the results from the first model.
-# 
-# Streamlit can read strings so for the sake of this notebook streamlit outputs will be printed strings
-
-# In[79]:
-
-
-user_TEG_df = extended_df.copy()
-user_TEG_df.head()
-
-
-# In[80]:
-
-
-# Keep only the most important values from teg. No need for extra created ones
-if user_extend_data:
-    columns_to_keep = dict.fromkeys(user_TEG_df.columns.difference(tegValues + new_columns), None)
-else:
-    columns_to_keep = dict.fromkeys(user_TEG_df.columns.difference(tegValues), None)
-
-# Iterate through prefixes and select the most important column for each
-for prefix in tegValues:
-    # Filter the importance_df_TEG1 for the current prefix
-    prefix_columns = importance_df_TEG1[importance_df_TEG1['Feature'].str.startswith(prefix)]
-
-    if not prefix_columns.empty:
-        # Find the column with the maximum importance for the current prefix
-        max_importance_row = prefix_columns.loc[prefix_columns['Importance'].idxmax()]
-
-        # Check if the maximum importance value is greater than 0
-        if max_importance_row['Importance'] > 0:
-            max_importance_column = max_importance_row['Feature']
-            columns_to_keep[max_importance_column] =max_importance_row['Importance']
-
-        else:
-            columns_to_keep[prefix] = 0
-
-columns_to_keep
-
-
-# In[81]:
-
-
-# Keep only non repeated values
-user_TEG_df = user_TEG_df[columns_to_keep.keys()]
-user_TEG_df.head()
-
-
-# In[82]:
-
-
-# Upload collinear TEG values
-
-# Define the filename
-filename = 'TEG_collinear.json'
-
-# Create the full file path by joining the base directory and filename
-file_path = os.path.join(base_directory, 'data', filename)
-
-with open(file_path, 'r') as json_file:
-    collinearity = json.load(json_file)
-collinearity
-
-
-# In[83]:
-
-
-# Create empty dictionary to hold selection
-selected_features = {}
-
-# Use the dictionary with columns to keep to show user their options
-for group_name , elements in collinearity.items():
-
-    print(group_name) #with st.expander(f"{group_name}"):
-
-    # Filter keys based on prefixes
-    filtered_keys = [key for key in columns_to_keep.keys() if any(key.startswith(prefix) for prefix in elements)]
-
-    # Create a list of strings by appending keys with values multiplied by 100
-    radio_labels = [f"{key} ({round(columns_to_keep[key] * 100, 2)}%)" for key in filtered_keys]
-
-    # Create a radio button to select a feature from the group
-    print(radio_labels) #selected_feature = st.radio("", radio_labels, key=group_name)
-    selected_feature = radio_labels[0]
-    print(type(selected_feature))
-
-    # Convert the group list to a tuple and store the selected feature in the dictionary
-    selected_features[group_name] = selected_feature
-
-selected_features
-
-
-# ## TEG model 2
-# After the user selects non-correlated parameters the model will be retrained dropping the values that were not selected
-
-# In[84]:
-
-
-# Extract all values from selected_features and collinearity
-selected_features_values = list(selected_features.values())
-collinearity_values = [item for sublist in collinearity.values() for item in sublist]
-
-# Find prefixes to drop
-prefix_to_keep = [prefix for selection in selected_features_values for prefix in collinearity_values if selection.startswith(prefix)]
-prefix_to_drop = list(set(collinearity_values) - set(prefix_to_keep))
-
-print(prefix_to_keep)
-prefix_to_drop
-
-
-# In[85]:
-
-
-# Find list of columns to drop
-columns_to_drop = [column for column in columns_to_keep.keys() if any(column.startswith(prefix) for prefix in prefix_to_drop)]
-
-columns_to_drop
-
-
-# In[86]:
-
-
-model2_df = user_TEG_df.copy()
-model2_df.drop(columns=columns_to_drop, inplace=True)
-model2_df.head()
-
-
-# ### Make model
-
-# In[87]:
-
-
-best_model_TEG2, TEG2_train = train_model(model2_df, 'Events', ['Record ID'])
-
-
-# ### Feature importance
-
-# In[88]:
-
-
-importance_df_TEG2, shap_values_TEG2 = feature_importance(best_model_TEG2, TEG2_train)
-
-
-# In[89]:
-
-
-# Plot SHAP summary plot
-shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False)
-
+    return columns_to_drop
