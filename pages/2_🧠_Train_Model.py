@@ -100,10 +100,10 @@ def extend_data_cached(clean_TEG_df, tegValues, user_extend_data):
 
 @st.cache_resource
 def train_model_cached(df, target_column, drop_columns):
-    best_pipeline, X_train = train_model(df, target_column, drop_columns)
+    best_pipeline, X_train, score = train_model(df, target_column, drop_columns)
 
     importance_df, shap_values = feature_importance(best_pipeline, X_train)
-    return best_pipeline, X_train, importance_df, shap_values
+    return best_pipeline, X_train, score, importance_df, shap_values
 
 
 @st.cache_data
@@ -160,8 +160,8 @@ if uploaded_file is not None:
     with st.spinner('Generating model first draft...'):
 
         # Make models to find contribution of each parameter
-        best_model_baseline, baseline_train, importance_df_bsaeline, shap_values_baseline = train_model_cached(clean_baseline_df, 'Events', ['Record ID'])
-        best_model_TEG1, TEG1_train, importance_df_TEG1, shap_values_TEG1 = train_model_cached(extended_df, 'Events', ['Record ID'])
+        best_model_baseline, baseline_train, baseline_score, importance_df_bsaeline, shap_values_baseline = train_model_cached(clean_baseline_df, 'Events', ['Record ID'])
+        best_model_TEG1, TEG1_train, TEG1_score, importance_df_TEG1, shap_values_TEG1 = train_model_cached(extended_df, 'Events', ['Record ID'])
 
       
     # Plot SHAP summary plot
@@ -210,7 +210,7 @@ if uploaded_file is not None:
 
         with st.spinner('Generating optimized model...'):
             # Make model and find feature importance
-            best_model_TEG2, TEG2_train, importance_df_TEG2, shap_values_TEG2 = train_model_cached(model2_df, 'Events', ['Record ID'])
+            best_model_TEG2, TEG2_train, TEG2_score, importance_df_TEG2, shap_values_TEG2 = train_model_cached(model2_df, 'Events', ['Record ID'])
 
            
         # Plot SHAP summary plot
