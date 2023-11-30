@@ -34,3 +34,17 @@ st.write("""
          them into account. Physicians should use their own judgement and analysis of the patient in addition to, or
          even in place of, the risk evaluation produced by CLOT WATCH.]
          """)
+
+# Title for data template section
+st.title("Data File Template Download")
+
+# Information text for data template button``
+st.markdown("""
+    Click the button below to download the Excel data file template. 
+    The data you upload should follow the format seen in this template.
+""")
+
+# Button widget for Data Template Download
+if st.button("Download Data File Template"):
+    # Code to handle the button click event can be added here
+    st.write("You clicked the button! Implement your download logic here.")
