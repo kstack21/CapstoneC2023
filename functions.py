@@ -180,7 +180,7 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
     columns_to_convert_baseline = ['White', 'Diabetes', 'Hypertension', 'Hyperlipidemia (choice=None)', 'Coronary Artery Disease', 'History of MI',
                         'Functional impairment', 'Does Subject Currently have cancer?', 'Past hx of cancer', 'Hx of  DVT', 'Hx of stroke',
                         'Hx of pulmonary embolism', 'Does the patient have a history of solid organ transplant?', 
-                        'Has subject had previous intervention of the index limb? ', 'Previous occluded stents',]
+                        'Has subject had previous intervention of the index limb?', 'Previous occluded stents',]
     columns_to_convert_TEG =['Cilostazol within 7 days']
 
     # Dictionary for replacement
