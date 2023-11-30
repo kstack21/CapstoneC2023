@@ -233,6 +233,12 @@ if uploaded_file is not None:
         st.subheader("Click the link below ('Download Model') to download your predictive model!")
         st.subheader("You will need this for the next page, where you can predict the risk of an individual patient.")
         href = download_cached(best_model_TEG2, TEG2_train)
+        #joblib.dump((best_model_TEG2), "trained_model.pkl")
+        #with open("trained_model.pkl", "rb") as model_file:
+        #    model_binary = model_file.read()
+        #b64 = base64.b64encode(model_binary).decode()
+        #href = f'<a href="data:application/octet-stream;base64,{b64}" download="trained_model.pkl">Download Model</a>'
+
         st.markdown(href, unsafe_allow_html=True)
 
             
