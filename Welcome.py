@@ -47,4 +47,4 @@ st.markdown("""
 # Button widget for Data Template Download
 if st.button("Download Data File Template"):
     # Code to handle the button click event can be added here
-    st.write("You clicked the button! Implement your download logic here.")
+    st.write("You clicked the button!")
