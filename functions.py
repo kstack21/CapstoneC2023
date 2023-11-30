@@ -244,10 +244,10 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
     clean_TEG_df = pd.get_dummies(clean_TEG_df, columns=columns_to_dummy_TEG,
                         prefix=columns_to_dummy_TEG)
 
-    if training:
+    #if training:
         # Drop unecessary columns
-        clean_baseline_df = clean_baseline_df.drop(columns=['Extremity_left']) # Because it is either right, left or bilateral
-        clean_baseline_df = clean_baseline_df.drop(columns=['Intervention Classification_Endo']) # Either endo, open or combined
+        #clean_baseline_df = clean_baseline_df.drop(columns=['Extremity_left']) # Because it is either right, left or bilateral
+        #clean_baseline_df = clean_baseline_df.drop(columns=['Intervention Classification_Endo']) # Either endo, open or combined
 
     # Artery affected
 

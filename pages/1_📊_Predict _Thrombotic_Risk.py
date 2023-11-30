@@ -69,7 +69,7 @@ if uploaded_file != None:
     df = pd.read_excel(uploaded_file, engine="openpyxl")
     patientBaseline = pd.read_excel(uploaded_file, sheet_name = 0, engine = "openpyxl")
     patientTEG = pd.read_excel(uploaded_file, sheet_name = 1, engine = "openpyxl")
-    #cleanPatientBaseline, cleanPatientTEG, tegValues = transform_data(patientBaseline, patientTEG, boundaries, timepoints)
+    cleanPatientBaseline, cleanPatientTEG, tegValues = transform_data(patientBaseline, patientTEG, boundaries, timepoints)
 
     # Patient Data Header #
     st.header(':green[Patient Data Uploaded]')
@@ -166,7 +166,11 @@ if uploaded_file != None:
 
     # display thrombosis risk
     st.header(":green[Patient's Calculated Risk of Thrombosis: ]")
-    st.subheader(":red[No risk calculated yet]")
+    if uploadedModel != None:
+        trainedModel = joblib.load(uploadedModel)
+        st.write(predict(cleanPatientTEG, 'Events', ['Record ID'], trainedModel))
+    else:
+        st.subheader(":red[No risk calculated yet]")
 # display outline of patient data if nothing has been uploaded
 else:
     # data header (no patient info)
@@ -190,12 +194,7 @@ else:
         st.metric(label=":red[Diabetes]", value = '')
 
     # display thrombosis risk
-    st.header(":red[Patient's Calculated Risk of Thrombosis: ]")    
-    if uploadedModel != None:
-        trainedModel = joblib.load(uploadedModel)
-        #st.write(predict(cleanPatientTEG, 'Events', ['Record ID'], trainedModel))
-    else:
-        st.subheader(":red[No risk calculated yet]")
+    st.header(":red[Patient's Calculated Risk of Thrombosis: ]")
 
 #--------------------------Model info--------------------------#
 
