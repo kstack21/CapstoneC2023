@@ -25,12 +25,12 @@ st.set_page_config(
 )
 st.set_option('deprecation.showPyplotGlobalUse', False)
 # Main layout
-st.title("Train model")
-st.markdown("""This page allows you to train a model 
+st.title("Train a New Model")
+st.markdown("""This page allows you to train a predictive model 
             and fine-tune its parameters. 
             It provides options for uploading new data, 
             selecting model algorithms, and adjusting training settings. 
-            Start by uploding a dataset with TEG data on the left column.""")
+            Start by uploding a dataset in the correct format using the button to the left.""")
 
 
 #--------------------------Cached Functions--------------------------#
@@ -69,7 +69,7 @@ def upoload_data_cached(uploaded_file):
     # Read the uploaded Excel file into a Pandas DataFrame
     xls = pd.ExcelFile(uploaded_file, engine="openpyxl")
 
-    sheet_names = ['Baseline', 'TEG Values', 'Events']  # Replace with your sheet names
+    sheet_names = ['Baseline', 'TEG Values', 'Events']
 
     # Access each sheet's data using the sheet name as the key
     baseline_df = pd.read_excel(xls, sheet_names[0])
@@ -146,11 +146,17 @@ user_extend_data = st.sidebar.toggle("Calculate rates", value=True, disabled= up
 #-------------------------- Main page--------------------------#
 if uploaded_file is not None:
     
+    # show data demographics
+    st.header("Demographics of the Uploaded Dataset")
+
     # Load data
     fig, clean_TEG_df, tegValues, clean_baseline_df = upoload_data_cached(uploaded_file)
     
     # Show data description
     st.plotly_chart(fig, use_container_width=True)
+
+    # show most influential factors
+    st.header("The baseline model has been created! The current most influential factors are...")
 
     # Extend data:
     extended_df, new_columns = extend_data_cached(clean_TEG_df, tegValues, user_extend_data)
@@ -164,14 +170,17 @@ if uploaded_file is not None:
         best_model_TEG1, TEG1_train, TEG1_score, importance_df_TEG1, shap_values_TEG1 = train_model_cached(extended_df, 'Events', ['Record ID'])
 
     # Plot SHAP summary plot
+    st.subheader("General Patient Information:")
     st.pyplot(shap.summary_plot(shap_values_baseline, baseline_train, plot_type="bar", show= False))
+    st.subheader("Patient TEG factors:")
     st.pyplot(shap.summary_plot(shap_values_TEG1, TEG1_train, plot_type="bar", show= False))
 
     # Get list of parameters for user to select
     columns_to_keep, user_TEG_df = user_options_cached(extended_df, tegValues, new_columns, importance_df_TEG1, user_extend_data)
     
     # User selects non collinear parameters
-    st.subheader("Select one of the related parameters")
+    st.header("These groups of factors are related. If you have a preference for which ones are used to train the model, please choose them below.")
+    st.subheader("Otherwise, you can leave them as their default values.")
     # Create empty dictionary to hold selection
     selected_features = {}
 
@@ -192,17 +201,15 @@ if uploaded_file is not None:
             selected_features[group_name] = selected_feature
 
     # Display selection to user
-    st.write("Parameters selected by the user")
-    st.write(selected_features)
-        
-    with st.expander("Other parameters"):
-        # Create a list of radio button labels with feature names and percentages
-        st.write("Do we still want to show this?")
-    
+    st.subheader("These are the parameters you have chosen:")
+    st.table(selected_features)   
+
+    # tell them to train the model
+    st.subheader("If this looks good, click the 'Train and Validate' button to the left to train your predictive model!") 
 
     # Train optimized model
     # #------------------------Side bar: Train and validate new model -----------------------#
-    if st.sidebar.button("Train and validate"):
+    if st.sidebar.button("Train and Validate"):
 
         # Get new dataframe with dropped values
         model2_df = user_selection_cached(user_TEG_df,selected_features, columns_to_keep, collinearity)
@@ -211,14 +218,20 @@ if uploaded_file is not None:
             # Make model and find feature importance
             best_model_TEG2, TEG2_train, TEG2_score, importance_df_TEG2, shap_values_TEG2 = train_model_cached(model2_df, 'Events', ['Record ID'])
 
-        # show model score
-        st.table(TEG2_score)
+        # introduce new model
+        st.header("Your predictive model has been created! Here are its validity scores:")
+        # show model score(s)
+        tegScores = pd.DataFrame(TEG2_score, index=[0])
+        st.table(tegScores)
 
         # Plot SHAP summary plot
+        st.header("And here are the TEG factors that most influence your model's predictions:")
         st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False))
 
 
         # Save the trained model to a file 
+        st.subheader("Click the link below ('Download Model') to download your predictive model!")
+        st.subheader("You will need this for the next page, where you can predict the risk of an individual patient.")
         href = download_cached(best_model_TEG2, TEG2_train)
         st.markdown(href, unsafe_allow_html=True)
 
