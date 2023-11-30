@@ -252,10 +252,10 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
     clean_TEG_df = pd.get_dummies(clean_TEG_df, columns=columns_to_dummy_TEG,
                         prefix=columns_to_dummy_TEG)
 
-    if training:
+    #if training:
         # Drop unecessary columns
-        clean_baseline_df = clean_baseline_df.drop(columns=['Extremity_left']) # Because it is either right, left or bilateral
-        clean_baseline_df = clean_baseline_df.drop(columns=['Intervention Classification_Endo']) # Either endo, open or combined
+        #clean_baseline_df = clean_baseline_df.drop(columns=['Extremity_left']) # Because it is either right, left or bilateral
+        #clean_baseline_df = clean_baseline_df.drop(columns=['Intervention Classification_Endo']) # Either endo, open or combined
 
     # Artery affected
 
@@ -575,7 +575,7 @@ def train_model(df, target_column, drop_columns):
     r2_train = r2_score(y_train, y_pred)
     print(y_train, y_pred)
     
-    score = {"mse test":mse_test, "r2 test": r2_test, "mse train": mse_train, "r2 train": r2_train}
+    score = {"Mean Squared Error (test)":mse_test, "R^2 (test)": r2_test, "Mean Squared Error (train)": mse_train, "R^2 (train)": r2_train}
 
     return best_pipeline, X_train, score
 
