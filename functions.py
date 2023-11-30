@@ -402,11 +402,11 @@ def visualize_data(clean_baseline_df, clean_TEG_df):
     fig_df = clean_baseline_df.copy()
 
     # Define custom colors
-    male_colors = ['#d9ed92', '#99d98c'] 
-    white_colors = ['#184e77', '#1a759f'] 
-    events_colors = '#1a759f'
-    age_histogram_color = '#52b69a' 
-    bmi_histogram_color = '#1e6091'
+    male_colors = ['#547e96', '#0d4157'] 
+    white_colors = ['#3e6134', '#3d7c70'] 
+    events_colors = '#6d2017'
+    age_histogram_color = '#751735' 
+    bmi_histogram_color = '#edc758'
 
     # Count binary values in the "Male" column
     male_counts = fig_df['Is Male'].value_counts()
@@ -535,7 +535,7 @@ def train_model(df, target_column, drop_columns):
     # Calculate R-squared (R2) score
     r2_train = r2_score(y_train, y_pred)
     
-    score = {"mse test":mse_test, "r2 test": r2_test, "mse train": mse_train, "r2 train": r2_train}
+    score = {"Mean Squared Error (test)":mse_test, "R^2 (test)": r2_test, "Mean Squared Error (train)": mse_train, "R^2 (train)": r2_train}
 
     return best_pipeline, X_train, score
 
