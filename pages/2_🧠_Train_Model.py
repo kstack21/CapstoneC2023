@@ -123,8 +123,8 @@ def user_selection_cached(user_TEG_df,selected_features, columns_to_keep, collin
     return model2_df
 
 @st.cache_data
-def download_cached(_best_model_TEG2, TEG2_train):
-    joblib.dump((_best_model_TEG2, TEG2_train), "trained_model.pkl")
+def download_cached(_object_input):
+    joblib.dump(_object_input, "trained_model.pkl")
     with open("trained_model.pkl", "rb") as model_file:
         model_binary = model_file.read()
     
@@ -142,9 +142,13 @@ def download_cached(_best_model_TEG2, TEG2_train):
 uploaded_file = st.sidebar.file_uploader("Upload Data Set of Patient Data (XLSX)", type=["xlsx"])
 
 # Side bar:  Toggle user chooses to extend data
-user_extend_data = False
+user_extend_data = st.sidebar.toggle("Calculate rates", value=True, disabled= uploaded_file is not None)
 #-------------------------- Main page--------------------------#
 if uploaded_file is not None:
+    
+    # show data demographics
+    st.header("Demographics of the Uploaded Dataset")
+
     
     # show data demographics
     st.header("Demographics of the Uploaded Dataset")
@@ -154,6 +158,9 @@ if uploaded_file is not None:
     
     # Show data description
     st.plotly_chart(fig, use_container_width=True)
+
+    # show most influential factors
+    st.header("The baseline model has been created! The current most influential factors are...")
 
     # show most influential factors
     st.header("The baseline model has been created! The current most influential factors are...")
@@ -169,9 +176,12 @@ if uploaded_file is not None:
         best_model_baseline, baseline_train, baseline_score, importance_df_bsaeline, shap_values_baseline = train_model_cached(clean_baseline_df, 'Events', ['Record ID'])
         best_model_TEG1, TEG1_train, TEG1_score, importance_df_TEG1, shap_values_TEG1 = train_model_cached(extended_df, 'Events', ['Record ID'])
 
+
     # Plot SHAP summary plot
     st.subheader("General Patient Information:")
+    st.subheader("General Patient Information:")
     st.pyplot(shap.summary_plot(shap_values_baseline, baseline_train, plot_type="bar", show= False))
+    st.subheader("Patient TEG factors:")
     st.subheader("Patient TEG factors:")
     st.pyplot(shap.summary_plot(shap_values_TEG1, TEG1_train, plot_type="bar", show= False))
 
@@ -179,6 +189,8 @@ if uploaded_file is not None:
     columns_to_keep, user_TEG_df = user_options_cached(extended_df, tegValues, new_columns, importance_df_TEG1, user_extend_data)
     
     # User selects non collinear parameters
+    st.header("These groups of factors are related. If you have a preference for which ones are used to train the model, please choose them below.")
+    st.subheader("Otherwise, you can leave them as their default values.")
     st.header("These groups of factors are related. If you have a preference for which ones are used to train the model, please choose them below.")
     st.subheader("Otherwise, you can leave them as their default values.")
     # Create empty dictionary to hold selection
@@ -206,9 +218,15 @@ if uploaded_file is not None:
 
     # tell them to train the model
     st.subheader("If this looks good, click the 'Train and Validate' button to the left to train your predictive model!") 
+    st.subheader("These are the parameters you have chosen:")
+    st.table(selected_features)   
+
+    # tell them to train the model
+    st.subheader("If this looks good, click the 'Train and Validate' button to the left to train your predictive model!") 
 
     # Train optimized model
     # #------------------------Side bar: Train and validate new model -----------------------#
+    if st.sidebar.button("Train and Validate"):
     if st.sidebar.button("Train and Validate"):
 
         # Get new dataframe with dropped values
@@ -221,8 +239,10 @@ if uploaded_file is not None:
         # introduce new model
         st.header("Your predictive model has been created! Here are its validity scores:")
         # show model score(s)
-        tegScores = pd.DataFrame(TEG2_score, index=[0])
-        st.table(tegScores)
+        tegScores1 = pd.DataFrame(TEG1_score, index=["TEG-based model (TEG model 1)"])
+        tegScores2 = pd.DataFrame(TEG2_score, index=["TEG-based model (TEG model 2)"])
+        baselineScores = pd.DataFrame(baseline_score, index=["General info based model"])
+        st.table(pd.concat([tegScores1, tegScores2, baselineScores], sort=False))
 
         # Plot SHAP summary plot
         st.header("And here are the TEG factors that most influence your model's predictions:")
@@ -230,15 +250,7 @@ if uploaded_file is not None:
 
 
         # Save the trained model to a file 
-        st.subheader("Click the link below ('Download Model') to download your predictive model!")
-        st.subheader("You will need this for the next page, where you can predict the risk of an individual patient.")
         href = download_cached(best_model_TEG2, TEG2_train)
-        #joblib.dump((best_model_TEG2), "trained_model.pkl")
-        #with open("trained_model.pkl", "rb") as model_file:
-        #    model_binary = model_file.read()
-        #b64 = base64.b64encode(model_binary).decode()
-        #href = f'<a href="data:application/octet-stream;base64,{b64}" download="trained_model.pkl">Download Model</a>'
-
         st.markdown(href, unsafe_allow_html=True)
 
     #--------------------------Model performance--------------------------#

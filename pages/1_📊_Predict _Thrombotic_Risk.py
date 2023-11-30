@@ -3,25 +3,48 @@ import pandas as pd
 import os
 import plotly.express as px
 import sys
+import joblib
 
 # Get higher level functions
 current_directory = os.path.dirname(os.path.abspath(__file__))
 parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
-from functions import path_back_to
+from functions import *
 
-exampleDataFrame = pd.DataFrame({'Age': [50], 'Diabetes': [1], 'BMI': [28.5], 'etc.': ['etc.']})
-#--------------------------Page description--------------------------#
+# define prediction method
+def predict(df, columns_to_drop, best_pipeline):
+    for column in columns_to_drop:
+        if column in df.columns:
+            df.drop(column, axis=1, inplace=True)
+
+    y_pred = best_pipeline.predict(df)
+    return y_pred
+
+# Set page config
 st.set_page_config(
     page_title="Predict Thrombotic Risk",
     page_icon="📊",
 )
 
+# Import boundary and timepoint values
+base_directory = os.getcwd()
+filename = 'data_boundaries.json'
+file_path = os.path.join(base_directory, 'data', filename)
+with open(file_path, 'r') as json_file:
+    boundaries = json.load(json_file)
+
+filename = 'timepoints.json'
+file_path = os.path.join(base_directory, 'data', filename)
+with open(file_path, 'r') as json_file:
+    timepoints = json.load(json_file)
+
+#--------------------------Page description--------------------------#
 # Title and Instructions
 st.title("Predict a Patient's Risk of Thrombosis")
 st.markdown("""Upload a patient's file using the button 'Upload Patient Data'
             in the sidebar to see their predicted risk of thrombosis.""")
 st.write("""Please make sure that the file is an Excel file in the following format:""")
+exampleDataFrame = pd.DataFrame({'Age': [50], 'Diabetes': [1], 'BMI': [28.5], 'etc.': ['etc.']})
 st.dataframe(exampleDataFrame, width=500)
 st.write("""Please also make sure that any yes/no values are indicated as 1/0, respectively,
          as illustrated in the 'Diabetes' column above.""")   
@@ -30,7 +53,7 @@ st.write("""Minimum expected factors: 'Age', 'Tobacco Use', 'Hypertension', 'Mal
 
 #--------------------------Side bar--------------------------#
 # Upload model
-st.sidebar.file_uploader("Upload Predictive Model", type = ["pkl"])
+uploadedDict = st.sidebar.file_uploader("Upload Predictive Model", type = ["pkl"])
 
 # Upload patient's data
 uploaded_file = st.sidebar.file_uploader("Upload Patient Data", type=["xlsx"])
@@ -42,7 +65,9 @@ st.sidebar.button("Export results")
 # Get patient data from uploaded file
 if uploaded_file != None:
     df = pd.read_excel(uploaded_file, engine="openpyxl")
-    #st.write(df)   # shows whole uploaded excel file
+    patientBaseline = pd.read_excel(uploaded_file, sheet_name = 0, engine = "openpyxl")
+    patientTEG = pd.read_excel(uploaded_file, sheet_name = 1, engine = "openpyxl")
+    cleanPatientBaseline, cleanPatientTEG, tegValues = transform_data(patientBaseline, patientTEG, boundaries, timepoints)
 
     # Patient Data Header #
     st.header(':green[Patient Data Uploaded]')
@@ -59,11 +84,11 @@ if uploaded_file != None:
             st.metric(label = ":red[Age]", value = "n/a")
         # Tobacco Use
         if 'Tobacco Use' in df:
-            if df.at[0,'Tobacco Use'] == 1:
+            if df.at[0,'Tobacco Use (1 current 2 former, 3 none)'] == 1:
                 temp = "Low"
-            elif df.at[0, 'Tobacco Use'] == 2:
+            elif df.at[0, 'Tobacco Use (1 current 2 former, 3 none)'] == 2:
                 temp = "Medium"
-            elif df.at[0, 'Tobacco Use'] >= 3:
+            elif df.at[0, 'Tobacco Use (1 current 2 former, 3 none)'] >= 3:
                 temp = "High"
             else:
                 temp = "None"
@@ -82,8 +107,8 @@ if uploaded_file != None:
 
     with col2:
         # Sex
-        if 'Male' in df:
-            if df.at[0,'Male']:
+        if 'Sex' in df:
+            if df.at[0,'Sex']:
                 temp = "Male"
             else:
                 temp = "Not Male (Female or other)"
@@ -139,7 +164,12 @@ if uploaded_file != None:
 
     # display thrombosis risk
     st.header(":green[Patient's Calculated Risk of Thrombosis: ]")
-    st.subheader(":red[No risk calculated yet]")
+    if uploadedDict != None:
+        trainingData = joblib.load(uploadedDict).get("Training Data")
+        #st.write(predict(cleanPatientTEG, ['Record ID'], trainedModel))
+    else:
+        st.subheader(":red[No risk calculated yet]")
+
 # display outline of patient data if nothing has been uploaded
 else:
     # data header (no patient info)
@@ -164,15 +194,13 @@ else:
 
     # display thrombosis risk
     st.header(":red[Patient's Calculated Risk of Thrombosis: ]")
-    st.subheader(":red[No risk calculated yet]")
 
 #--------------------------Model info--------------------------#
 
 
 #--------------------------Prediction--------------------------#
-# Get data from folder
-data_path = path_back_to(["data","DummyResult.xlsx"])
 
+"""
 # Get 10 most influencial elements
 prediction = pd.read_excel(data_path)
 prediction = prediction.T.squeeze()
@@ -185,3 +213,4 @@ st.subheader("Predictive Model Details:")
 # Plot pie chart
 fig = px.pie(largest_contributor, names='Category', values='Value', title='Contribution of Top 10 Influential Factors')
 st.plotly_chart(fig, use_container_width=True)
+"""
