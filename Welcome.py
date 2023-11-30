@@ -35,6 +35,8 @@ st.write("""
          even in place of, the risk evaluation produced by CLOT WATCH.]
          """)
 
+file_path = "testData\Headers.xlsx"
+
 # Title for data template section
 st.title("Data File Template Download")
 
@@ -46,5 +48,12 @@ st.markdown("""
 
 # Button widget for Data Template Download
 if st.button("Download Data File Template"):
-    # Code to handle the button click event can be added here
-    st.write("You clicked the button!")
+    # Trigger file download
+    st.write("### Downloading File...")
+    st.write(f"File name: {file_path}")
+    st.download_button(
+        label="Download Excel File Template",
+        data=open(file_path, "rb").read(),
+        file_name='Headers.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
