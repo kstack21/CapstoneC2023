@@ -80,3 +80,15 @@ st.write("""
 13. If the user wishes to train a new model with a different selection of parameters, return to step 3. 
 
 14. User may exit the website. """)
+
+# Button widget for Data Template Download
+if st.button("Download Data File Template"):
+    # Trigger file download
+    st.write("### Downloading File...")
+    st.write(f"File name: {file_path}")
+    st.download_button(
+        label="Download Excel File Template",
+        data=open(file_path, "rb").read(),
+        file_name='Headers.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
