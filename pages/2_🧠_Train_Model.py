@@ -184,9 +184,9 @@ if uploaded_file is not None:
     # Plot SHAP summary plot
 
     st.subheader(":blue[General Patient Information:]")
-    st.pyplot(shap.summary_plot(shap_values_baseline, baseline_train, plot_type="bar", show= False))
+    st.pyplot(shap.summary_plot(shap_values_baseline, baseline_train, plot_type="bar", show= False, max_display=10))
     st.subheader(":blue[Patient TEG factors:]")
-    st.pyplot(shap.summary_plot(shap_values_TEG1, TEG1_train, plot_type="bar", show= False))
+    st.pyplot(shap.summary_plot(shap_values_TEG1, TEG1_train, plot_type="bar", show= False, max_display=10))
 
     # Get list of parameters for user to select
     columns_to_keep, user_TEG_df = user_options_cached(extended_df, tegValues, new_columns, importance_df_TEG1, user_extend_data)
@@ -234,7 +234,6 @@ if uploaded_file is not None:
     # Train optimized model
     # #------------------------Side bar: Train and validate new model -----------------------#
     if st.sidebar.button("Train and Validate"):
-    if st.sidebar.button("Train and Validate"):
 
         # Get new dataframe with dropped values
         model2_df = user_selection_cached(user_TEG_df,selected_features, columns_to_keep, collinearity)
@@ -258,7 +257,7 @@ if uploaded_file is not None:
 
         # Plot SHAP summary plot
         st.subheader("And here are the TEG factors that most influence your model's predictions:")
-        st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False))
+        st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False, max_display=10))
         st.markdown("""---""")
 
 
