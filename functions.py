@@ -152,10 +152,11 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
     reverse_mapping = {v: k for k, values in timepoints.items() for v in values}
 
     # Replace values using the reverse mapping
+    print(clean_TEG_df['Visit Timepoint'])
     clean_TEG_df['Days from operation'] = clean_TEG_df['Visit Timepoint'].map(reverse_mapping)
-
+    print(clean_TEG_df['Days from operation'])
     # Convert the column to integer
-    clean_TEG_df['Days from operation'] = clean_TEG_df['Days from operation'].astype(int)
+    clean_TEG_df['Days from operation'] = clean_TEG_df['Days from operation'].fillna(0).astype(int)
 
     # Drop old column
     clean_TEG_df.drop(columns=['Visit Timepoint'], inplace = True)
@@ -174,6 +175,7 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
     clean_baseline_df.drop('Sex', axis=1, inplace=True)
     clean_baseline_df['Is Male']
 
+    print("This needs to be more rubst")
     # Change following columns to booleans
     columns_to_convert_baseline = ['White', 'Diabetes', 'Hypertension', 'Hyperlipidemia (choice=None)', 'Coronary Artery Disease', 'History of MI',
                         'Functional impairment', 'Does Subject Currently have cancer?', 'Past hx of cancer', 'Hx of  DVT', 'Hx of stroke',
@@ -224,8 +226,14 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
 
     clean_baseline_df['Renal Status'] = clean_baseline_df['Renal Status'].replace(replace_dict)
 
+    # Replace NaN values with a new category
+    print("orignally suggested to fill with unknown. Need to figure out how to deal with empty. Fix from category order")
+    # Replace NaN values with a new category
+    new_category = 'Unknown'
+    clean_baseline_df[['Tobacco Use (1 current 2 former, 3 none)', 'Renal Status']] = clean_baseline_df[['Tobacco Use (1 current 2 former, 3 none)', 'Renal Status']].fillna(new_category)
+
     # Initialize the OrdinalEncoder with specified category orders
-    encoder = OrdinalEncoder(categories=[category_orders[column] for column in ['Tobacco Use (1 current 2 former, 3 none)', 'Renal Status']])
+    encoder = OrdinalEncoder(categories=[category_orders[column] + [new_category] for column in ['Tobacco Use (1 current 2 former, 3 none)', 'Renal Status']])
 
     # Fit and transform the selected columns to encode ordinal values
     clean_baseline_df[['Tobacco Use (1 current 2 former, 3 none)', 'Renal Status']] = encoder.fit_transform(clean_baseline_df[['Tobacco Use (1 current 2 former, 3 none)', 'Renal Status']])
@@ -257,57 +265,90 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
     unique_intervention = set()
     unique_anticoagulation = set()
 
+    print("New loop")
     for index, row in clean_baseline_df.iterrows():
-        arteries = row['Artery affected'].split(', ')
-        unique_arteries.update(arteries)
+        # Check if the value is a string before splitting
+        if isinstance(row['Artery affected'], str):
+            arteries = row['Artery affected'].split(', ')
+            unique_arteries.update(arteries)
 
-        intervention = row['Intervention Type'].split(', ')
-        unique_intervention.update(intervention)
+        # Check if the value is a string before splitting
+        if isinstance(row['Intervention Type'], str):
+            intervention = row['Intervention Type'].split(', ')
+            unique_intervention.update(intervention)
         
 
     for index, row in clean_TEG_df.iterrows():
+        # Check if the value is a string and not NaN before splitting
+        if isinstance(row['Antiplatelet Therapy within 7 Days'], str):
+            antiplatelet = row['Antiplatelet Therapy within 7 Days'].split(', ')
+            unique_antiplatelet.update(antiplatelet)
 
-        antiplatelet = row['Antiplatelet Therapy within 7 Days'].split(', ')
-        unique_antiplatelet.update(antiplatelet)
+        # Check if the value is a string and not NaN before splitting
+        if isinstance(row['Anticoagulation within 24 Hours'], str):
+            anticoagulation = row['Anticoagulation within 24 Hours'].split(', ')
+            # Delete items in parenthesis ex: heparin (Calciparine) to be just heparin
+            anticoagulation = {re.sub(r'\s*\([^)]*\)\s*', '', item) for item in anticoagulation}
+            unique_anticoagulation.update(anticoagulation)
 
-        anticoagulation = row['Anticoagulation within 24 Hours'].split(', ')
-        # Delete items in parenthesis ex: heparin (Calciparine) to be just heparin
-        anticoagulation = {re.sub(r'\s*\([^)]*\)\s*', '', item) for item in anticoagulation} 
-        unique_anticoagulation.update(anticoagulation)
+    # Fill NaN values with 0 in the 'Artery affected' column
+    clean_baseline_df['Artery affected'].fillna(0, inplace=True)
 
-    # Dummy encode ateries affected
+    # Dummy encode arteries affected
     selected_arteries = []
     for artery in unique_arteries:
-        column_name = "Artery affected_"+artery
-        clean_baseline_df[column_name] = clean_baseline_df['Artery affected'].str.contains(artery).astype(int)
+        column_name = "Artery affected_" + artery
+        # Convert to int after filling NaN with 0
+        clean_baseline_df[column_name] = clean_baseline_df['Artery affected'].str.contains(artery).fillna(0).astype(int)
         selected_arteries.append(column_name)
 
     selected_arteries.append('Artery affected')
 
 
-    # Dummy encode antiplatelete therapy
+    # Fill NaN values with 0 in the 'Antiplatelet Therapy within 7 Days' column
+    # Fill NaN values with 0 in the 'Antiplatelet Therapy within 7 Days' column
+    clean_TEG_df['Antiplatelet Therapy within 7 Days'].fillna(0, inplace=True)
+
+    # Dummy encode antiplatelet therapy
     selected_antiplatelet = []
     for antiplatelet in unique_antiplatelet:
-        column_name = "Antiplatelet therapy_"+antiplatelet
-        clean_TEG_df[column_name] = clean_TEG_df['Antiplatelet Therapy within 7 Days'].str.contains(antiplatelet).astype(int)
+        column_name = "Antiplatelet therapy_" + antiplatelet
+
+        # Handle NaN values and convert to int
+        clean_TEG_df[column_name] = clean_TEG_df['Antiplatelet Therapy within 7 Days'].apply(lambda x: 1 if antiplatelet in str(x) else 0).astype(int)
+
         selected_antiplatelet.append(column_name)
 
     selected_antiplatelet.append('Antiplatelet Therapy within 7 Days')
 
+
+    # Fill NaN values with an empty string in the 'Intervention Type' column
+    clean_baseline_df['Intervention Type'].fillna('', inplace=True)
+
     # Dummy encode intervention types
     selected_intervention = []
     for intervention in unique_intervention:
-        column_name = 'Intervention type_'+intervention
-        clean_baseline_df[column_name] = clean_baseline_df['Intervention Type'].str.contains(intervention).astype(int)
+        column_name = 'Intervention type_' + intervention
+
+        # Handle NaN values and convert to int
+        clean_baseline_df[column_name] = clean_baseline_df['Intervention Type'].apply(lambda x: 1 if intervention in str(x) else 0).astype(int)
+
         selected_intervention.append(column_name)
 
+
     selected_intervention.append('Intervention Type')
+
+    # Fill NaN values with an empty string in the 'Anticoagulation within 24 Hours' column
+    clean_TEG_df['Anticoagulation within 24 Hours'].fillna('', inplace=True)
 
     # Dummy encode anticoagulation meds
     selected_anticoagulation = []
     for anticoagulation in unique_anticoagulation:
-        column_name = "Anticoagulation_"+anticoagulation
-        clean_TEG_df[column_name] = clean_TEG_df['Anticoagulation within 24 Hours'].str.contains(anticoagulation).astype(int)
+        column_name = "Anticoagulation_" + anticoagulation
+
+        # Handle NaN values and convert to int
+        clean_TEG_df[column_name] = clean_TEG_df['Anticoagulation within 24 Hours'].apply(lambda x: 1 if anticoagulation in str(x) else 0).astype(int)
+
         selected_anticoagulation.append(column_name)
 
     selected_anticoagulation.append('Anticoagulation within 24 Hours')

@@ -149,11 +149,18 @@ if uploaded_file is not None:
     # show data demographics
     st.header("Demographics of the Uploaded Dataset")
 
+    
+    # show data demographics
+    st.header("Demographics of the Uploaded Dataset")
+
     # Load data
     fig, clean_TEG_df, tegValues, clean_baseline_df = upoload_data_cached(uploaded_file)
     
     # Show data description
     st.plotly_chart(fig, use_container_width=True)
+
+    # show most influential factors
+    st.header("The baseline model has been created! The current most influential factors are...")
 
     # show most influential factors
     st.header("The baseline model has been created! The current most influential factors are...")
@@ -169,9 +176,12 @@ if uploaded_file is not None:
         best_model_baseline, baseline_train, baseline_score, importance_df_bsaeline, shap_values_baseline = train_model_cached(clean_baseline_df, 'Events', ['Record ID'])
         best_model_TEG1, TEG1_train, TEG1_score, importance_df_TEG1, shap_values_TEG1 = train_model_cached(extended_df, 'Events', ['Record ID'])
 
+
     # Plot SHAP summary plot
     st.subheader("General Patient Information:")
+    st.subheader("General Patient Information:")
     st.pyplot(shap.summary_plot(shap_values_baseline, baseline_train, plot_type="bar", show= False))
+    st.subheader("Patient TEG factors:")
     st.subheader("Patient TEG factors:")
     st.pyplot(shap.summary_plot(shap_values_TEG1, TEG1_train, plot_type="bar", show= False))
 
@@ -179,6 +189,8 @@ if uploaded_file is not None:
     columns_to_keep, user_TEG_df = user_options_cached(extended_df, tegValues, new_columns, importance_df_TEG1, user_extend_data)
     
     # User selects non collinear parameters
+    st.header("These groups of factors are related. If you have a preference for which ones are used to train the model, please choose them below.")
+    st.subheader("Otherwise, you can leave them as their default values.")
     st.header("These groups of factors are related. If you have a preference for which ones are used to train the model, please choose them below.")
     st.subheader("Otherwise, you can leave them as their default values.")
     # Create empty dictionary to hold selection
@@ -206,9 +218,15 @@ if uploaded_file is not None:
 
     # tell them to train the model
     st.subheader("If this looks good, click the 'Train and Validate' button to the left to train your predictive model!") 
+    st.subheader("These are the parameters you have chosen:")
+    st.table(selected_features)   
+
+    # tell them to train the model
+    st.subheader("If this looks good, click the 'Train and Validate' button to the left to train your predictive model!") 
 
     # Train optimized model
     # #------------------------Side bar: Train and validate new model -----------------------#
+    if st.sidebar.button("Train and Validate"):
     if st.sidebar.button("Train and Validate"):
 
         # Get new dataframe with dropped values
@@ -230,26 +248,9 @@ if uploaded_file is not None:
         st.header("And here are the TEG factors that most influence your model's predictions:")
         st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False))
 
-        # Create empty dictionary to hold stuff to be downloaded
-        to_download_TEG1 = {}
-        to_download_TEG2 = {}
 
-        # add everything to be downloaded to the dictionary
-        to_download_TEG1 = {"TEG model": best_model_TEG1,
-                           "Baseline model": best_model_baseline,
-                           "Training Data": TEG1_train}
-        to_download_TEG2 = {"TEG model": best_model_TEG2,
-                           "Baseline model": best_model_baseline,
-                           "Training Data": TEG2_train}
-        
-        # Save the trained model to a file
-        href1 = download_cached(to_download_TEG1)
-        href2 = download_cached(to_download_TEG2)
+        # Save the trained model to a file 
+        href = download_cached(best_model_TEG2, TEG2_train)
+        st.markdown(href, unsafe_allow_html=True)
 
-        # tell user to download their model
-        st.subheader("Click one of the links below ('Download Model') to download your predictive model!")
-        st.subheader("You will need this for the next page, where you can predict the risk of an individual patient.")
-        st.write("Using TEG-based model 1:")
-        st.markdown(href1, unsafe_allow_html=True)
-        st.write("Using TEG-based model 2:")
-        st.markdown(href2, unsafe_allow_html=True)
+    #--------------------------Model performance--------------------------#
