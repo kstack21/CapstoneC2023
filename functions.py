@@ -534,7 +534,7 @@ def train_model(df, target_column, drop_columns):
     r2_train = r2_score(y_train, y_pred)
     print(y_train, y_pred)
     
-    score = {"mse test":mse_test, "r2 test": r2_test, "mse train": mse_train, "r2 train": r2_train}
+    score = {"Mean Squared Error (test)":mse_test, "R^2 (test)": r2_test, "Mean Squared Error (train)": mse_train, "R^2 (train)": r2_train}
 
     return best_pipeline, X_train, score
 

@@ -123,8 +123,8 @@ def user_selection_cached(user_TEG_df,selected_features, columns_to_keep, collin
     return model2_df
 
 @st.cache_data
-def download_cached(_best_model_TEG2, TEG2_train):
-    joblib.dump((_best_model_TEG2, TEG2_train), "trained_model.pkl")
+def download_cached(_object_input):
+    joblib.dump(_object_input, "trained_model.pkl")
     with open("trained_model.pkl", "rb") as model_file:
         model_binary = model_file.read()
     
@@ -221,24 +221,35 @@ if uploaded_file is not None:
         # introduce new model
         st.header("Your predictive model has been created! Here are its validity scores:")
         # show model score(s)
-        tegScores = pd.DataFrame(TEG2_score, index=[0])
-        st.table(tegScores)
+        tegScores1 = pd.DataFrame(TEG1_score, index=["TEG-based model (TEG model 1)"])
+        tegScores2 = pd.DataFrame(TEG2_score, index=["TEG-based model (TEG model 2)"])
+        baselineScores = pd.DataFrame(baseline_score, index=["General info based model"])
+        st.table(pd.concat([tegScores1, tegScores2, baselineScores], sort=False))
 
         # Plot SHAP summary plot
         st.header("And here are the TEG factors that most influence your model's predictions:")
         st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False))
 
+        # Create empty dictionary to hold stuff to be downloaded
+        to_download_TEG1 = {}
+        to_download_TEG2 = {}
 
-        # Save the trained model to a file 
-        st.subheader("Click the link below ('Download Model') to download your predictive model!")
+        # add everything to be downloaded to the dictionary
+        to_download_TEG1 = {"TEG model": best_model_TEG1,
+                           "Baseline model": best_model_baseline,
+                           "Training Data": TEG1_train}
+        to_download_TEG2 = {"TEG model": best_model_TEG2,
+                           "Baseline model": best_model_baseline,
+                           "Training Data": TEG2_train}
+        
+        # Save the trained model to a file
+        href1 = download_cached(to_download_TEG1)
+        href2 = download_cached(to_download_TEG2)
+
+        # tell user to download their model
+        st.subheader("Click one of the links below ('Download Model') to download your predictive model!")
         st.subheader("You will need this for the next page, where you can predict the risk of an individual patient.")
-        href = download_cached(best_model_TEG2, TEG2_train)
-        #joblib.dump((best_model_TEG2), "trained_model.pkl")
-        #with open("trained_model.pkl", "rb") as model_file:
-        #    model_binary = model_file.read()
-        #b64 = base64.b64encode(model_binary).decode()
-        #href = f'<a href="data:application/octet-stream;base64,{b64}" download="trained_model.pkl">Download Model</a>'
-
-        st.markdown(href, unsafe_allow_html=True)
-
-    #--------------------------Model performance--------------------------#
+        st.write("Using TEG-based model 1:")
+        st.markdown(href1, unsafe_allow_html=True)
+        st.write("Using TEG-based model 2:")
+        st.markdown(href2, unsafe_allow_html=True)

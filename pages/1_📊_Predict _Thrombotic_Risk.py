@@ -12,14 +12,12 @@ sys.path.append(parent_directory)
 from functions import *
 
 # define prediction method
-def predict(df, target_column, drop_columns, best_pipeline):
+def predict(df, columns_to_drop, best_pipeline):
+    for column in columns_to_drop:
+        if column in df.columns:
+            df.drop(column, axis=1, inplace=True)
 
-    y = df[target_column]
-    X = df.drop(labels=drop_columns + [target_column], axis=1)
-
-    # Make predictions on the test data
-    y_pred = best_pipeline.predict(X)
-
+    y_pred = best_pipeline.predict(df)
     return y_pred
 
 # Set page config
@@ -55,7 +53,7 @@ st.write("""Minimum expected factors: 'Age', 'Tobacco Use', 'Hypertension', 'Mal
 
 #--------------------------Side bar--------------------------#
 # Upload model
-uploadedModel = st.sidebar.file_uploader("Upload Predictive Model", type = ["pkl"])
+uploadedDict = st.sidebar.file_uploader("Upload Predictive Model", type = ["pkl"])
 
 # Upload patient's data
 uploaded_file = st.sidebar.file_uploader("Upload Patient Data", type=["xlsx"])
@@ -86,11 +84,11 @@ if uploaded_file != None:
             st.metric(label = ":red[Age]", value = "n/a")
         # Tobacco Use
         if 'Tobacco Use' in df:
-            if df.at[0,'Tobacco Use'] == 1:
+            if df.at[0,'Tobacco Use (1 current 2 former, 3 none)'] == 1:
                 temp = "Low"
-            elif df.at[0, 'Tobacco Use'] == 2:
+            elif df.at[0, 'Tobacco Use (1 current 2 former, 3 none)'] == 2:
                 temp = "Medium"
-            elif df.at[0, 'Tobacco Use'] >= 3:
+            elif df.at[0, 'Tobacco Use (1 current 2 former, 3 none)'] >= 3:
                 temp = "High"
             else:
                 temp = "None"
@@ -109,8 +107,8 @@ if uploaded_file != None:
 
     with col2:
         # Sex
-        if 'Male' in df:
-            if df.at[0,'Male']:
+        if 'Sex' in df:
+            if df.at[0,'Sex']:
                 temp = "Male"
             else:
                 temp = "Not Male (Female or other)"
@@ -166,11 +164,12 @@ if uploaded_file != None:
 
     # display thrombosis risk
     st.header(":green[Patient's Calculated Risk of Thrombosis: ]")
-    if uploadedModel != None:
-        trainedModel = joblib.load(uploadedModel)
-        st.write(predict(cleanPatientTEG, 'Events', ['Record ID'], trainedModel))
+    if uploadedDict != None:
+        trainingData = joblib.load(uploadedDict).get("Training Data")
+        #st.write(predict(cleanPatientTEG, ['Record ID'], trainedModel))
     else:
         st.subheader(":red[No risk calculated yet]")
+
 # display outline of patient data if nothing has been uploaded
 else:
     # data header (no patient info)
