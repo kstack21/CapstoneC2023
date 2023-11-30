@@ -30,6 +30,7 @@ st.markdown("""This page allows you to train a predictive model
             and fine-tune its parameters. 
             It provides options for uploading new data, 
             selecting model algorithms, and adjusting training settings. 
+            
             Start by uploding a dataset in the correct format using the button to the left.""")
 
 
@@ -144,10 +145,11 @@ uploaded_file = st.sidebar.file_uploader("Upload Data Set of Patient Data (XLSX)
 # Side bar:  Toggle user chooses to extend data
 user_extend_data = st.sidebar.toggle("Calculate rates", value=True, disabled= uploaded_file is not None)
 #-------------------------- Main page--------------------------#
+st.markdown("""---""")
 if uploaded_file is not None:
     
     # show data demographics
-    st.header("Demographics of the Uploaded Dataset")
+    st.subheader("Demographics of the Uploaded Dataset")
 
     
     # show data demographics
@@ -159,8 +161,10 @@ if uploaded_file is not None:
     # Show data description
     st.plotly_chart(fig, use_container_width=True)
 
+    st.markdown("""---""")
+
     # show most influential factors
-    st.header("The baseline model has been created! The current most influential factors are...")
+    st.subheader("The baseline model has been created! The current most influential factors are...")
 
     # show most influential factors
     st.header("The baseline model has been created! The current most influential factors are...")
@@ -178,21 +182,20 @@ if uploaded_file is not None:
 
 
     # Plot SHAP summary plot
-    st.subheader("General Patient Information:")
-    st.subheader("General Patient Information:")
+
+    st.subheader(":blue[General Patient Information:]")
     st.pyplot(shap.summary_plot(shap_values_baseline, baseline_train, plot_type="bar", show= False))
-    st.subheader("Patient TEG factors:")
-    st.subheader("Patient TEG factors:")
+    st.subheader(":blue[Patient TEG factors:]")
     st.pyplot(shap.summary_plot(shap_values_TEG1, TEG1_train, plot_type="bar", show= False))
 
     # Get list of parameters for user to select
     columns_to_keep, user_TEG_df = user_options_cached(extended_df, tegValues, new_columns, importance_df_TEG1, user_extend_data)
-    
+    st.markdown("""---""")
     # User selects non collinear parameters
-    st.header("These groups of factors are related. If you have a preference for which ones are used to train the model, please choose them below.")
-    st.subheader("Otherwise, you can leave them as their default values.")
-    st.header("These groups of factors are related. If you have a preference for which ones are used to train the model, please choose them below.")
-    st.subheader("Otherwise, you can leave them as their default values.")
+
+    st.subheader("Please select one parameter from each of the following groups")
+    st.markdown("These groups of factors are related. If you have a preference for which ones are used to train the model, please choose them below. Otherwise, you can leave them as their default values. The reason this is necessary is because factors that are related can create a biased model.")
+
     # Create empty dictionary to hold selection
     selected_features = {}
 
@@ -215,14 +218,18 @@ if uploaded_file is not None:
     # Display selection to user
     st.subheader("These are the parameters you have chosen:")
     st.table(selected_features)   
+    st.markdown("""---""")
 
     # tell them to train the model
     st.subheader("If this looks good, click the 'Train and Validate' button to the left to train your predictive model!") 
+
+    st.markdown("""---""")
     st.subheader("These are the parameters you have chosen:")
     st.table(selected_features)   
 
     # tell them to train the model
     st.subheader("If this looks good, click the 'Train and Validate' button to the left to train your predictive model!") 
+
 
     # Train optimized model
     # #------------------------Side bar: Train and validate new model -----------------------#
@@ -237,19 +244,29 @@ if uploaded_file is not None:
             best_model_TEG2, TEG2_train, TEG2_score, importance_df_TEG2, shap_values_TEG2 = train_model_cached(model2_df, 'Events', ['Record ID'])
 
         # introduce new model
-        st.header("Your predictive model has been created! Here are its validity scores:")
+        st.subheader("Your predictive model has been created! Here are its validity scores:")
         # show model score(s)
+
+        tegScores = pd.DataFrame(TEG2_score, index=[0])
+        st.table(tegScores)
+        st.markdown("""---""")
+
         tegScores1 = pd.DataFrame(TEG1_score, index=["TEG-based model (TEG model 1)"])
         tegScores2 = pd.DataFrame(TEG2_score, index=["TEG-based model (TEG model 2)"])
         baselineScores = pd.DataFrame(baseline_score, index=["General info based model"])
         st.table(pd.concat([tegScores1, tegScores2, baselineScores], sort=False))
 
         # Plot SHAP summary plot
-        st.header("And here are the TEG factors that most influence your model's predictions:")
+        st.subheader("And here are the TEG factors that most influence your model's predictions:")
         st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False))
+        st.markdown("""---""")
 
 
         # Save the trained model to a file 
+
+        st.subheader("Click the link below ('Download Model') to download your predictive model!")
+        st.markdown("You will need this for the next page, where you can predict the risk of an individual patient.")
+
         href = download_cached(best_model_TEG2, TEG2_train)
         st.markdown(href, unsafe_allow_html=True)
 
