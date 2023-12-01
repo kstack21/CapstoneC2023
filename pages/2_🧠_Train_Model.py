@@ -266,7 +266,7 @@ if uploaded_file is not None:
         st.subheader("Click the link below ('Download Model') to download your predictive model!")
         st.markdown("You will need this for the next page, where you can predict the risk of an individual patient.")
 
-        href = download_cached(best_model_TEG2, TEG2_train)
+        href = download_cached()
         st.markdown(href, unsafe_allow_html=True)
 
     #--------------------------Model performance--------------------------#
