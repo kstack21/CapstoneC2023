@@ -68,6 +68,7 @@ if uploaded_file != None:
     patientBaseline = pd.read_excel(uploaded_file, sheet_name = 0, engine = "openpyxl")
     patientTEG = pd.read_excel(uploaded_file, sheet_name = 1, engine = "openpyxl")
     cleanPatientBaseline, cleanPatientTEG, tegValues = transform_data(patientBaseline, patientTEG, boundaries, timepoints)
+    extendedCleanPatientTEG, newCols = extend_df(cleanPatientTEG, tegValues)
 
     # Patient Data Header #
     st.header(':green[Patient Data Uploaded]')
@@ -165,8 +166,19 @@ if uploaded_file != None:
     # display thrombosis risk
     st.header(":green[Patient's Calculated Risk of Thrombosis: ]")
     if uploadedDict != None:
-        trainingData = joblib.load(uploadedDict).get("Training Data")
-        #st.write(predict(cleanPatientTEG, ['Record ID'], trainedModel))
+        trainingData = joblib.load(uploadedDict).get("Training data")
+        trainingBaseline = joblib.load(uploadedDict).get("Baseline training data")
+        trainingTEG = joblib.load(uploadedDict).get("TEG training data")
+        #trainedModelTEG = joblib.load(uploadedDict).get("TEG model")
+        #trainedModelBaseline = joblib.load(uploadedDict).get("Baseline model")
+        #st.write(trainingData)
+        st.subheader("Demographics of the Uploaded Dataset")
+        #st.plotly_chart(visualize_data(trainingBaseline, trainingTEG), use_container_width=True)
+        st.write(trainingData.describe())
+        st.write(trainingBaseline)
+        st.write(trainingTEG)
+        #st.write(predict(extendedCleanPatientTEG, ['Record ID'], trainedModelTEG))
+        #st.write(predict(cleanPatientBaseline, ['Record ID'], trainedModelBaseline))
     else:
         st.subheader(":red[No risk calculated yet]")
 

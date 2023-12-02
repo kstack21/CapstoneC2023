@@ -239,10 +239,14 @@ if uploaded_file is not None:
         # Save the trained model to a file 
         toDownload1 = {"TEG model": best_model_TEG1,
                       "Baseline model": best_model_baseline,
-                      "Training data": TEG1_train}
+                      "Training data": TEG1_train,
+                      "TEG training data": clean_TEG_df,
+                      "Baseline training data": clean_baseline_df}
         toDownload2 = {"TEG model": best_model_TEG2,
                        "Baseline model": best_model_baseline,
-                       "Training data": TEG1_train}
+                       "Training data": TEG2_train,
+                       "TEG training data": clean_TEG_df,
+                       "Baseline training data": clean_baseline_df}
         st.subheader("Click one of the links below ('Download Model') to download your predictive model!")
         st.markdown("You will need this for the next page, where you can predict the risk of an individual patient.")
 
