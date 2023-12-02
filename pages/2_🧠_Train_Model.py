@@ -29,9 +29,8 @@ st.title("Train a New Model")
 st.markdown("""This page allows you to train a predictive model 
             and fine-tune its parameters. 
             It provides options for uploading new data, 
-            selecting model algorithms, and adjusting training settings. 
-            
-            Start by uploding a dataset in the correct format using the button to the left.""")
+            selecting model algorithms, and adjusting training settings.""") 
+st.markdown("Start by uploding a dataset in the correct format using the button to the left.")
 
 
 #--------------------------Cached Functions--------------------------#
@@ -151,10 +150,6 @@ if uploaded_file is not None:
     # show data demographics
     st.subheader("Demographics of the Uploaded Dataset")
 
-    
-    # show data demographics
-    st.header("Demographics of the Uploaded Dataset")
-
     # Load data
     fig, clean_TEG_df, tegValues, clean_baseline_df = upoload_data_cached(uploaded_file)
     
@@ -164,25 +159,22 @@ if uploaded_file is not None:
     st.markdown("""---""")
 
     # show most influential factors
-    st.subheader("The baseline model has been created! The current most influential factors are...")
-
-    # show most influential factors
-    st.header("The baseline model has been created! The current most influential factors are...")
+    st.subheader("The intial models have been created! The current most influential factors are...")
 
     # Extend data:
     extended_df, new_columns = extend_data_cached(clean_TEG_df, tegValues, user_extend_data)
 
+    # store column names
+    baselineColumns = list(clean_baseline_df.columns)
+    tegColumns = list(extended_df.columns)
     
     # Generate model
     with st.spinner('Generating model first draft...'):
-
         # Make models to find contribution of each parameter
         best_model_baseline, baseline_train, baseline_score, importance_df_bsaeline, shap_values_baseline = train_model_cached(clean_baseline_df, 'Events', ['Record ID'])
         best_model_TEG1, TEG1_train, TEG1_score, importance_df_TEG1, shap_values_TEG1 = train_model_cached(extended_df, 'Events', ['Record ID'])
 
-
     # Plot SHAP summary plot
-
     st.subheader(":blue[General Patient Information:]")
     st.pyplot(shap.summary_plot(shap_values_baseline, baseline_train, plot_type="bar", show= False, max_display=10))
     st.subheader(":blue[Patient TEG factors:]")
@@ -223,14 +215,6 @@ if uploaded_file is not None:
     # tell them to train the model
     st.subheader("If this looks good, click the 'Train and Validate' button to the left to train your predictive model!") 
 
-    st.markdown("""---""")
-    st.subheader("These are the parameters you have chosen:")
-    st.table(selected_features)   
-
-    # tell them to train the model
-    st.subheader("If this looks good, click the 'Train and Validate' button to the left to train your predictive model!") 
-
-
     # Train optimized model
     # #------------------------Side bar: Train and validate new model -----------------------#
     if st.sidebar.button("Train and Validate"):
@@ -243,12 +227,8 @@ if uploaded_file is not None:
             best_model_TEG2, TEG2_train, TEG2_score, importance_df_TEG2, shap_values_TEG2 = train_model_cached(model2_df, 'Events', ['Record ID'])
 
         # introduce new model
-        st.subheader("Your predictive model has been created! Here are its validity scores:")
-        # show model score(s)
-
-        tegScores = pd.DataFrame(TEG2_score, index=[0])
-        st.table(tegScores)
         st.markdown("""---""")
+        st.subheader("Your predictive model has been created! Here are its validity scores:")
 
         tegScores1 = pd.DataFrame(TEG1_score, index=["TEG-based model (TEG model 1)"])
         tegScores2 = pd.DataFrame(TEG2_score, index=["TEG-based model (TEG model 2)"])
@@ -260,13 +240,28 @@ if uploaded_file is not None:
         st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False, max_display=10))
         st.markdown("""---""")
 
-
         # Save the trained model to a file 
-
-        st.subheader("Click the link below ('Download Model') to download your predictive model!")
+        toDownload1 = {"TEG model": best_model_TEG1,
+                      "Baseline model": best_model_baseline,
+                      "Training data": TEG1_train,
+                      "TEG training data": clean_TEG_df,
+                      "Baseline training data": clean_baseline_df,
+                      "TEG column names": tegColumns,
+                      "Baseline column names": baselineColumns}
+        toDownload2 = {"TEG model": best_model_TEG2,
+                       "Baseline model": best_model_baseline,
+                       "Training data": TEG2_train,
+                       "TEG training data": clean_TEG_df,
+                       "Baseline training data": clean_baseline_df,
+                       "TEG column names": tegColumns,
+                       "Baseline column names": baselineColumns}
+        st.subheader("Click one of the links below ('Download Model') to download your predictive model!")
         st.markdown("You will need this for the next page, where you can predict the risk of an individual patient.")
 
-        href = download_cached()
-        st.markdown(href, unsafe_allow_html=True)
+        href1 = download_cached(toDownload1)
+        href2 = download_cached(toDownload2)
 
-    #--------------------------Model performance--------------------------#
+        st.write("With TEG-based model 1:")
+        st.markdown(href1, unsafe_allow_html=True)
+        st.write("With TEG-based model 2:")
+        st.markdown(href2, unsafe_allow_html=True)

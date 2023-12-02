@@ -5,7 +5,15 @@ Description: This module contains the code necessary to define the user interfac
 Run in terminal: streamlit run Welcome.py
 """
 import streamlit as st
-import pandas as pd 
+import pandas as pd
+import os
+import sys
+import base64
+import io
+
+current_directory = os.path.dirname(os.path.abspath(__file__))
+parent_directory = os.path.dirname(current_directory)
+sys.path.append(parent_directory)
 
 st.set_page_config(
     page_title="CLØT WATCH",
@@ -30,14 +38,16 @@ st.markdown(
     To use the current predictive model to obtain a patient's predicted risk, use the side bar to navigate to page 1
     ('Predict Thrombotic Risk').    
     
-    To upload data to train a new predictive model, use the side bar to navigate to page 2 ('Train Model').   
+    To upload data to train a new predictive model, use the side bar to navigate to page 2 ('Train Model').
+
+    If you're new here, refer to the instructions below!   
     """
 )
 st.markdown("""---""")
 st.subheader("Instructions for CLØT WATCH")
 st.write("""
 
-1. If the user has a .pkl file for trained model and wishes to only predict the thrombotic risk of a patient, skip to step 14. If the user does not have a .pkl file for the trained model, and wishes to train a new model, continue to step 3. 
+1. If you have a .pkl file for trained model and wish to only predict the thrombotic risk of a patient, skip to step 14. If you do not have a .pkl file for the trained model, and wish to train a new model, continue to step 2. 
 
 2. From the “Welcome” page, navigate to the “Train Model” tab. 
 
@@ -81,14 +91,30 @@ st.write("""
 
 14. User may exit the website. """)
 
-# Button widget for Data Template Download
-if st.button("Download Data File Template"):
-    # Trigger file download
-    st.write("### Downloading File...")
-    st.write(f"File name: {file_path}")
+
+st.write("Download the template file here to get started! The first line is filled in with example data, please follow its format and delete it when you have finished entering your data.")
+# data entry template download
+base_directory = os.getcwd()
+filename = 'HeadersTemplate.xlsx'
+file_path = os.path.join(base_directory, filename)
+
+buffer = io.BytesIO()
+
+baseline = pd.read_excel(file_path, sheet_name = 0, engine="openpyxl")
+teg = pd.read_excel(file_path, sheet_name = 1, engine="openpyxl")
+events = pd.read_excel(file_path, sheet_name = 2, engine="openpyxl")
+
+with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+    # Write each dataframe to a different worksheet.
+    baseline.to_excel(writer, sheet_name="Baseline", index=False)
+    teg.to_excel(writer, sheet_name="TEG Values", index=False)
+    events.to_excel(writer, sheet_name="Events", index=False)
+
+    writer.close()
+
     st.download_button(
-        label="Download Excel File Template",
-        data=open(file_path, "rb").read(),
-        file_name='Headers.xlsx',
-        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        label="Download template",
+        data=buffer,
+        file_name="CLOTWATCH_template.xlsx",
+        mime="application/vnd.ms-excel"
     )
