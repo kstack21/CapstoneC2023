@@ -11,6 +11,22 @@ parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
 from functions import *
 
+def check_column_names(df, model_column):
+    """
+    model_column (list) with column names originally used in model
+    """
+    
+    # Ensure all columns in teg_columns exist in clean_TEG_df
+    for column in model_column:
+        if column not in df.columns:
+            # If the column is missing, add an empty column
+            df[column] = pd.Series(dtype=float)
+
+    # Drop columns in clean_TEG_df that are not in teg_columns
+    new_df = df[model_column]
+
+    return new_df
+
 # define prediction method
 def predict(df, columns_to_drop, best_pipeline):
     for column in columns_to_drop:
@@ -41,15 +57,9 @@ with open(file_path, 'r') as json_file:
 #--------------------------Page description--------------------------#
 # Title and Instructions
 st.title("Predict a Patient's Risk of Thrombosis")
-st.markdown("""Upload a patient's file using the button 'Upload Patient Data'
-            in the sidebar to see their predicted risk of thrombosis.""")
-st.write("""Please make sure that the file is an Excel file in the following format:""")
-exampleDataFrame = pd.DataFrame({'Age': [50], 'Diabetes': [1], 'BMI': [28.5], 'etc.': ['etc.']})
-st.dataframe(exampleDataFrame, width=500)
-st.write("""Please also make sure that any yes/no values are indicated as 1/0, respectively,
-         as illustrated in the 'Diabetes' column above.""")   
-st.write("""Minimum expected factors: 'Age', 'Tobacco Use', 'Hypertension', 'Male', 'White',
-            'Clotting Disorder', 'Extremity', 'Artery affected', 'BMI', and 'Diabetes'""")
+st.write("Begin by uploading a patient's file using the button 'Upload Patient Data' in the sidebar!")
+st.write("Please make sure that the file is in the same format as the downloadable template on the welcome page.")
+st.write("Please also upload a trained predictive model (if you just did this on the 'Train Model' page, look in your downloads for a file called 'trained_model.pkl').")  
 
 #--------------------------Side bar--------------------------#
 # Upload model
@@ -64,17 +74,24 @@ st.sidebar.button("Export results")
 #--------------------------Patient info--------------------------#
 # Get patient data from uploaded file
 if uploaded_file != None:
+
+    # read patient data in
     df = pd.read_excel(uploaded_file, engine="openpyxl")
     patientBaseline = pd.read_excel(uploaded_file, sheet_name = 0, engine = "openpyxl")
     patientTEG = pd.read_excel(uploaded_file, sheet_name = 1, engine = "openpyxl")
+
+    # clean patient data
     cleanPatientBaseline, cleanPatientTEG, tegValues = transform_data(patientBaseline, patientTEG, boundaries, timepoints)
-    extendedCleanPatientTEG, newCols = extend_df(cleanPatientTEG, tegValues)
+
+    # get IDs and timepoints of each patient TEG record
+    tegRecordID = patientTEG['Record ID']
+    tegTimepoint = patientTEG['Visit Timepoint']
 
     # Patient Data Header #
     st.header(':green[Patient Data Uploaded]')
 
     # Organizing text in columns
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
 
     # Present General Patient Info
     with col1:
@@ -83,29 +100,16 @@ if uploaded_file != None:
             st.metric(label = "Age", value = df.at[0,'Age'])
         else:
             st.metric(label = ":red[Age]", value = "n/a")
-        # Tobacco Use
-        if 'Tobacco Use' in df:
-            if df.at[0,'Tobacco Use (1 current 2 former, 3 none)'] == 1:
-                temp = "Low"
-            elif df.at[0, 'Tobacco Use (1 current 2 former, 3 none)'] == 2:
-                temp = "Medium"
-            elif df.at[0, 'Tobacco Use (1 current 2 former, 3 none)'] >= 3:
-                temp = "High"
-            else:
-                temp = "None"
-            st.metric(label = "Tobacco Use", value = temp)
-        else:
-            st.metric(label = ":red[Tobacco Use]", value = "n/a")
-        # Hypertension
-        if 'Hypertension' in df:
-            if df.at[0,'Hypertension']:
+        # Diabetes
+        if 'Diabetes' in df:
+            if df.at[0, 'Diabetes']:
                 temp = "Yes"
             else:
                 temp = "No"
-            st.metric(label="Hypertension", value = temp)
+            st.metric(label="Diabetes", value = temp)
         else:
-            st.metric(label = ":red[Hypertension]", value = "n/a")
-
+            st.metric(label = ":red[Diabetes]", value = "No column named 'Diabetes'")
+        
     with col2:
         # Sex
         if 'Sex' in df:
@@ -116,6 +120,17 @@ if uploaded_file != None:
             st.metric(label = "Sex", value = temp)
         else:
             st.metric(label = ":red[Sex]", value = "n/a")
+        # Hypertension
+        if 'Hypertension' in df:
+            if df.at[0,'Hypertension']:
+                temp = "Yes"
+            else:
+                temp = "No"
+            st.metric(label="Hypertension", value = temp)
+        else:
+            st.metric(label = ":red[Hypertension]", value = "n/a")
+
+    with col3:
         # Race (White vs Not White)
         if 'White' in df:
             if df.at[0,'White']:
@@ -134,95 +149,80 @@ if uploaded_file != None:
             st.metric(label = "Clotting Disorder", value = temp)
         else:
             st.metric(label = ":red[Clotting Disorder]", value = "n/a")
-
-    with col3:
-        # Extremity and Artery Affected
-        if ('Extremity' in df) & ('Artery affected' in df):
-            temp = df.at[0, 'Extremity'] + " " + df.at[0, 'Artery affected']
-            st.metric(label="Affected Artery", value = temp)
-        elif ('Extremity' in df) & ('Artery affected' not in df):
-            temp = df.at[0, 'Extremity'] + " Side"
-            st.metric(label = "Affected Artery", value = temp)
-        elif ('Extremity' not in df) & ('Artery affected' in df):
-            temp = df.at[0, 'Artery affected']
-            st.metric(label = "Affected Artery", value = temp)
-        else:
-            st.metric(label = ":red[Affected Artery]", value = "n/a")
+   
+    with col4: 
         # BMI
         if 'BMI' in df:
-            st.metric(label="BMI", value = df.at[0, 'BMI'])
+            st.metric(label="BMI", value = round(df.at[0, 'BMI'], 2))
         else:
-            st.metric(label = ":red[BMI]", value = "No column named 'BMI'")
-        # Diabetes
-        if 'Diabetes' in df:
-            if df.at[0, 'Diabetes']:
-                temp = "Yes"
-            else:
-                temp = "No"
-            st.metric(label="Diabetes", value = temp)
-        else:
-            st.metric(label = ":red[Diabetes]", value = "No column named 'Diabetes'")
+            st.metric(label = ":red[BMI]", value = "No column named 'BMI'")  
 
     # display thrombosis risk
+    st.markdown("""---""")
     st.header(":green[Patient's Calculated Risk of Thrombosis: ]")
     if uploadedDict != None:
+
+        # import training data and models from the uploaded pkl file
         trainingData = joblib.load(uploadedDict).get("Training data")
         trainingBaseline = joblib.load(uploadedDict).get("Baseline training data")
         trainingTEG = joblib.load(uploadedDict).get("TEG training data")
-        #trainedModelTEG = joblib.load(uploadedDict).get("TEG model")
-        #trainedModelBaseline = joblib.load(uploadedDict).get("Baseline model")
-        #st.write(trainingData)
-        st.subheader("Demographics of the Uploaded Dataset")
-        #st.plotly_chart(visualize_data(trainingBaseline, trainingTEG), use_container_width=True)
-        st.write(trainingData.describe())
-        st.write(trainingBaseline)
-        st.write(trainingTEG)
-        #st.write(predict(extendedCleanPatientTEG, ['Record ID'], trainedModelTEG))
-        #st.write(predict(cleanPatientBaseline, ['Record ID'], trainedModelBaseline))
+        trainedModelTEG = joblib.load(uploadedDict).get("TEG model")
+        trainedModelBaseline = joblib.load(uploadedDict).get("Baseline model")
+        trainingTEGColumns = joblib.load(uploadedDict).get("TEG column names")
+        trainingBaselineColumns = joblib.load(uploadedDict).get("Baseline column names")
+
+        # clean the imported data before using in predictions
+        cleanPatientTEG_updated = check_column_names(cleanPatientTEG, trainingTEGColumns)
+        cleanPatientBaseline_updated = check_column_names(cleanPatientBaseline, trainingBaselineColumns)
+
+        # get prediction from baseline model, make string to display percentage
+        baselineRisk = predict(cleanPatientBaseline_updated, ['Record ID', 'Events'], trainedModelBaseline)
+        baselineRiskText = "".join([str(round(baselineRisk[0] * 100, 2)), "%"])
+        st.subheader(":blue[Based on general patient info:]")
+        st.subheader(baselineRiskText)
+
+        # get prediction from TEG model, iterate over each TEG record and display percentage for each
+        tegRisk = predict(cleanPatientTEG_updated, ['Record ID', 'Events'], trainedModelTEG)
+        st.subheader(":blue[Based on TEG info:]")
+        tegRiskText = []
+        tegRiskTextID = []
+        tegRiskTextNum = []
+        for i in range (len(tegRisk)):
+            tegRiskText.append(str(round(tegRisk[i] * 100, 2)))
+        for i in range (len(tegRiskText)):
+            tegRiskTextID.append("".join(["From record ", str(tegRecordID[i]), " at timepoint ", tegTimepoint[i], ":"]))
+            tegRiskTextNum.append("".join([tegRiskText[i], "%"]))
+            st.subheader(tegRiskTextID[i])
+            st.subheader(tegRiskTextNum[i])
+        st.markdown("""---""")
+
+        # illustrate the training data demographics
+        st.subheader("Demographics of the Training Data")
+        st.write("""This is an overview of the demographics of the data used in the training of your predictive model. Please consider how your patient
+                 fits in with these demographics; if there is little to no representation of their age, race, etc. the model's prediction may not
+                 be as accurate.""")
+        st.plotly_chart(visualize_data(trainingBaseline, trainingTEG), use_container_width=True)
     else:
         st.subheader(":red[No risk calculated yet]")
 
-# display outline of patient data if nothing has been uploaded
+# display outline of page with no information
 else:
     # data header (no patient info)
     st.header(':red[No Patient Data Uploaded]')
 
-    # organizing text in columns
-    col1, col2, col3 = st.columns(3)
-
-    # display empty sections
-    with col1:
-        st.metric(label=":red[Age]", value = '')
-        st.metric(label=":red[Tobacco Use]", value = '')
-        st.metric(label=":red[Hypertension]", value = '')
-    with col2:
-        st.metric(label=":red[Sex]", value = '')
-        st.metric(label=":red[Race]", value = '')
-        st.metric(label=":red[Clotting Disorder]", value = '')
-    with col3:
-        st.metric(label=":red[Affected Artery]", value = '')
-        st.metric(label=":red[BMI]", value = '')
-        st.metric(label=":red[Diabetes]", value = '')
-
     # display thrombosis risk
     st.header(":red[Patient's Calculated Risk of Thrombosis: ]")
+    st.subheader(":red[No risk calculated yet]")
 
-#--------------------------Model info--------------------------#
-
-
-#--------------------------Prediction--------------------------#
-
-"""
 # Get 10 most influencial elements
-prediction = pd.read_excel(data_path)
-prediction = prediction.T.squeeze()
-largest_contributor = prediction.nlargest(n=10, keep='first')
-largest_contributor = pd.DataFrame({'Category': largest_contributor.index, 'Value': largest_contributor.values})
+#prediction = pd.read_excel(data_path)
+#prediction = prediction.T.squeeze()
+#largest_contributor = prediction.nlargest(n=10, keep='first')
+#largest_contributor = pd.DataFrame({'Category': largest_contributor.index, 'Value': largest_contributor.values})
 
 # Pie chart title
-st.subheader("Predictive Model Details:")
+#st.subheader("Predictive Model Details:")
 
 # Plot pie chart
-fig = px.pie(largest_contributor, names='Category', values='Value', title='Contribution of Top 10 Influential Factors')
-st.plotly_chart(fig, use_container_width=True)
-"""
+#fig = px.pie(largest_contributor, names='Category', values='Value', title='Contribution of Top 10 Influential Factors')
+#st.plotly_chart(fig, use_container_width=True)

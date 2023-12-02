@@ -163,6 +163,10 @@ if uploaded_file is not None:
 
     # Extend data:
     extended_df, new_columns = extend_data_cached(clean_TEG_df, tegValues, user_extend_data)
+
+    # store column names
+    baselineColumns = list(clean_baseline_df.columns)
+    tegColumns = list(extended_df.columns)
     
     # Generate model
     with st.spinner('Generating model first draft...'):
@@ -241,12 +245,16 @@ if uploaded_file is not None:
                       "Baseline model": best_model_baseline,
                       "Training data": TEG1_train,
                       "TEG training data": clean_TEG_df,
-                      "Baseline training data": clean_baseline_df}
+                      "Baseline training data": clean_baseline_df,
+                      "TEG column names": tegColumns,
+                      "Baseline column names": baselineColumns}
         toDownload2 = {"TEG model": best_model_TEG2,
                        "Baseline model": best_model_baseline,
                        "Training data": TEG2_train,
                        "TEG training data": clean_TEG_df,
-                       "Baseline training data": clean_baseline_df}
+                       "Baseline training data": clean_baseline_df,
+                       "TEG column names": tegColumns,
+                       "Baseline column names": baselineColumns}
         st.subheader("Click one of the links below ('Download Model') to download your predictive model!")
         st.markdown("You will need this for the next page, where you can predict the risk of an individual patient.")
 
