@@ -18,18 +18,6 @@ st.set_page_config(
     page_icon="📊",
 )
 
-# Import boundary and timepoint values
-base_directory = os.getcwd()
-filename = 'data_boundaries.json'
-file_path = os.path.join(base_directory, 'data', filename)
-with open(file_path, 'r') as json_file:
-    boundaries = json.load(json_file)
-
-filename = 'timepoints.json'
-file_path = os.path.join(base_directory, 'data', filename)
-with open(file_path, 'r') as json_file:
-    timepoints = json.load(json_file)
-
 #--------------------------Page description--------------------------#
 # Title and Instructions
 st.title("Predict a Patient's Risk of Thrombosis")
@@ -37,15 +25,38 @@ st.write("Begin by uploading a patient's file using the button 'Upload Patient D
 st.write("Please make sure that the file is in the same format as the downloadable template on the welcome page.")
 st.write("Please also upload a trained predictive model (if you just did this on the 'Train Model' page, look in your downloads for a file called 'trained_model.pkl').")  
 
-#--------------------------Side bar--------------------------#
-# Upload model
-uploadedDict = st.sidebar.file_uploader("Upload Predictive Model", type = ["pkl"])
+#--------------------------Cached Functions--------------------------#
 
+# Import boundary and timepoint values
+@st.cache_data
+def import_json_values_cached():
+    base_directory = os.getcwd()
+    filename = 'data_boundaries.json'
+    file_path = os.path.join(base_directory, 'data', filename)
+    with open(file_path, 'r') as json_file:
+        boundaries = json.load(json_file)
+
+    filename = 'timepoints.json'
+    file_path = os.path.join(base_directory, 'data', filename)
+    with open(file_path, 'r') as json_file:
+        timepoints = json.load(json_file)
+    
+    return boundaries, timepoints
+
+# Load general data
+boundaries, timepoints= import_json_values_cached()
+
+#--------------------------Side bar--------------------------#
 # Upload patient's data
 uploaded_file = st.sidebar.file_uploader("Upload Patient Data", type=["xlsx"])
 
+
+# Upload model
+uploaded_model_file = st.sidebar.file_uploader("Upload Predictive Model", type = ["pkl"])
+
+
 # Download 
-st.sidebar.button("Export results")
+st.sidebar.button("Export results") # Move to end
 
 #--------------------------Patient info--------------------------#
 # Get patient data from uploaded file
@@ -135,17 +146,20 @@ if uploaded_file != None:
 
     # display thrombosis risk
     st.markdown("""---""")
-    st.header(":green[Patient's Calculated Risk of Thrombosis: ]")
-    if uploadedDict != None:
+    
+    if uploaded_model_file != None:
+
+        st.header(":green[Patient's Calculated Risk of Thrombosis: ]")
 
         # import training data and models from the uploaded pkl file
-        trainingData = joblib.load(uploadedDict).get("Training data")
-        trainingBaseline = joblib.load(uploadedDict).get("Baseline training data")
-        trainingTEG = joblib.load(uploadedDict).get("TEG training data")
-        trainedModelTEG = joblib.load(uploadedDict).get("TEG model")
-        trainedModelBaseline = joblib.load(uploadedDict).get("Baseline model")
-        trainingTEGColumns = joblib.load(uploadedDict).get("TEG column names")
-        trainingBaselineColumns = joblib.load(uploadedDict).get("Baseline column names")
+        uploaded_model = joblib.load(uploaded_model_file)
+        trainingData  = uploaded_model.get("Training data")
+        trainingBaseline = uploaded_model.get("Baseline training data")
+        trainingTEG = uploaded_model.get("TEG training data")
+        trainedModelTEG = uploaded_model.get("TEG model")
+        trainedModelBaseline = uploaded_model.get("Baseline model")
+        trainingTEGColumns = uploaded_model.get("TEG column names")
+        trainingBaselineColumns = uploaded_model.get("Baseline column names")
 
         # clean the imported data before using in predictions
         cleanPatientTEG_updated = check_column_names(cleanPatientTEG, trainingTEGColumns)
@@ -190,15 +204,3 @@ else:
     st.header(":red[Patient's Calculated Risk of Thrombosis: ]")
     st.subheader(":red[No risk calculated yet]")
 
-# Get 10 most influencial elements
-#prediction = pd.read_excel(data_path)
-#prediction = prediction.T.squeeze()
-#largest_contributor = prediction.nlargest(n=10, keep='first')
-#largest_contributor = pd.DataFrame({'Category': largest_contributor.index, 'Value': largest_contributor.values})
-
-# Pie chart title
-#st.subheader("Predictive Model Details:")
-
-# Plot pie chart
-#fig = px.pie(largest_contributor, names='Category', values='Value', title='Contribution of Top 10 Influential Factors')
-#st.plotly_chart(fig, use_container_width=True)

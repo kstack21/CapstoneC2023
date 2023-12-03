@@ -10,6 +10,7 @@ import json
 import re
 import base64
 import shap
+import pickle
 
 # Get higher level functions
 current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -123,17 +124,16 @@ def user_selection_cached(user_TEG_df,selected_features, columns_to_keep, collin
     return model2_df
 
 @st.cache_data
-def download_cached(_object_input):
-    joblib.dump(_object_input, "trained_model.pkl")
-    with open("trained_model.pkl", "rb") as model_file:
-        model_binary = model_file.read()
-    
-    # Encode the model_binary in base64
-    b64 = base64.b64encode(model_binary).decode()
-    
-    # Create a download link for the model file
-    href = f'<a href="data:application/octet-stream;base64,{b64}" download="trained_model.pkl">Download Model</a>'
-        
+def download_dict_as_pkl(my_dict):
+    # Serialize the dictionary to bytes using pickle
+    serialized_dict = pickle.dumps(my_dict)
+
+    # Encode the serialized bytes in base64
+    b64_encoded = base64.b64encode(serialized_dict).decode()
+
+    # Create a download link for the pickled dictionary
+    href = f'<a href="data:application/octet-stream;base64,{b64_encoded}" download="my_dict.pkl">Download Dictionary</a>'
+
     return href
 
 
@@ -228,6 +228,12 @@ if uploaded_file is not None:
 
         # introduce new model
         st.markdown("""---""")
+        # Plot SHAP summary plot
+        st.subheader("And here are the TEG factors that most influence your model's predictions:")
+        st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False, max_display=10))
+        st.markdown("""---""")
+
+
         st.subheader("Your predictive model has been created! Here are its validity scores:")
 
         tegScores1 = pd.DataFrame(TEG1_score, index=["TEG-based model (TEG model 1)"])
@@ -235,10 +241,6 @@ if uploaded_file is not None:
         baselineScores = pd.DataFrame(baseline_score, index=["General info based model"])
         st.table(pd.concat([tegScores1, tegScores2, baselineScores], sort=False))
 
-        # Plot SHAP summary plot
-        st.subheader("And here are the TEG factors that most influence your model's predictions:")
-        st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False, max_display=10))
-        st.markdown("""---""")
 
         # Save the trained model to a file 
         toDownload1 = {"TEG model": best_model_TEG1,
