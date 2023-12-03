@@ -664,3 +664,28 @@ def user_selection(selected_features, columns_to_keep, collinearity):
     columns_to_drop = [column for column in columns_to_keep.keys() if any(column.startswith(prefix) for prefix in prefix_to_drop)]
 
     return columns_to_drop
+
+def check_column_names(df, model_column):
+    """
+    model_column (list) with column names originally used in model
+    """
+    
+    # Ensure all columns in teg_columns exist in clean_TEG_df
+    for column in model_column:
+        if column not in df.columns:
+            # If the column is missing, add an empty column
+            df[column] = pd.Series(dtype=float)
+
+    # Drop columns in clean_TEG_df that are not in teg_columns
+    new_df = df[model_column]
+
+    return new_df
+
+# define prediction method
+def predict(df, columns_to_drop, best_pipeline):
+    for column in columns_to_drop:
+        if column in df.columns:
+            df.drop(column, axis=1, inplace=True)
+
+    y_pred = best_pipeline.predict(df)
+    return y_pred

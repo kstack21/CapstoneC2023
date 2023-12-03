@@ -11,30 +11,6 @@ parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
 from functions import *
 
-def check_column_names(df, model_column):
-    """
-    model_column (list) with column names originally used in model
-    """
-    
-    # Ensure all columns in teg_columns exist in clean_TEG_df
-    for column in model_column:
-        if column not in df.columns:
-            # If the column is missing, add an empty column
-            df[column] = pd.Series(dtype=float)
-
-    # Drop columns in clean_TEG_df that are not in teg_columns
-    new_df = df[model_column]
-
-    return new_df
-
-# define prediction method
-def predict(df, columns_to_drop, best_pipeline):
-    for column in columns_to_drop:
-        if column in df.columns:
-            df.drop(column, axis=1, inplace=True)
-
-    y_pred = best_pipeline.predict(df)
-    return y_pred
 
 # Set page config
 st.set_page_config(
@@ -75,7 +51,7 @@ st.sidebar.button("Export results")
 # Get patient data from uploaded file
 if uploaded_file != None:
 
-    # read patient data in
+    # Read patient data 
     df = pd.read_excel(uploaded_file, engine="openpyxl")
     patientBaseline = pd.read_excel(uploaded_file, sheet_name = 0, engine = "openpyxl")
     patientTEG = pd.read_excel(uploaded_file, sheet_name = 1, engine = "openpyxl")
