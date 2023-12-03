@@ -152,9 +152,7 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
     reverse_mapping = {v: k for k, values in timepoints.items() for v in values}
 
     # Replace values using the reverse mapping
-    print(clean_TEG_df['Visit Timepoint'])
     clean_TEG_df['Days from operation'] = clean_TEG_df['Visit Timepoint'].map(reverse_mapping)
-    print(clean_TEG_df['Days from operation'])
     # Convert the column to integer
     clean_TEG_df['Days from operation'] = clean_TEG_df['Days from operation'].fillna(0).astype(int)
 
@@ -175,7 +173,6 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
     clean_baseline_df.drop('Sex', axis=1, inplace=True)
     clean_baseline_df['Is Male']
 
-    print("This needs to be more rubst")
     # Change following columns to booleans
     columns_to_convert_baseline = ['White', 'Diabetes', 'Hypertension', 'Hyperlipidemia (choice=None)', 'Coronary Artery Disease', 'History of MI',
                         'Functional impairment', 'Does Subject Currently have cancer?', 'Past hx of cancer', 'Hx of  DVT', 'Hx of stroke',
@@ -227,7 +224,6 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
     clean_baseline_df['Renal Status'] = clean_baseline_df['Renal Status'].replace(replace_dict)
 
     # Replace NaN values with a new category
-    print("orignally suggested to fill with unknown. Need to figure out how to deal with empty. Fix from category order")
     # Replace NaN values with a new category
     new_category = 'Unknown'
     clean_baseline_df[['Tobacco Use (1 current 2 former, 3 none)', 'Renal Status']] = clean_baseline_df[['Tobacco Use (1 current 2 former, 3 none)', 'Renal Status']].fillna(new_category)
@@ -265,7 +261,6 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
     unique_intervention = set()
     unique_anticoagulation = set()
 
-    print("New loop")
     for index, row in clean_baseline_df.iterrows():
         # Check if the value is a string before splitting
         if isinstance(row['Artery affected'], str):
@@ -304,8 +299,6 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
 
     selected_arteries.append('Artery affected')
 
-
-    # Fill NaN values with 0 in the 'Antiplatelet Therapy within 7 Days' column
     # Fill NaN values with 0 in the 'Antiplatelet Therapy within 7 Days' column
     clean_TEG_df['Antiplatelet Therapy within 7 Days'].fillna(0, inplace=True)
 
@@ -320,7 +313,6 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
         selected_antiplatelet.append(column_name)
 
     selected_antiplatelet.append('Antiplatelet Therapy within 7 Days')
-
 
     # Fill NaN values with an empty string in the 'Intervention Type' column
     clean_baseline_df['Intervention Type'].fillna('', inplace=True)
@@ -500,7 +492,7 @@ def visualize_data(clean_baseline_df, clean_TEG_df):
 
     return fig
 
-def train_model(df, target_column, drop_columns):
+def train_model(df, target_column, drop_columns, quantile_range=(5,95)):
     """
     Trains an XGBoost regression model on the given DataFrame using grid search for hyperparameter tuning.
 
@@ -524,7 +516,8 @@ def train_model(df, target_column, drop_columns):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     # Create transformers for feature scaling
-    target_scaler = MinMaxScaler()
+    target_scaler = RobustScaler(quantile_range=quantile_range)
+   
 
     # Scale target
     # Fit the target scaler on training target and transform both training and test target
@@ -565,7 +558,7 @@ def train_model(df, target_column, drop_columns):
     mse_test = mean_squared_error(y_test, y_pred)
     # Calculate R-squared (R2) score
     r2_test = r2_score(y_test, y_pred)
-    print(y_test, y_pred)
+
 
     # Make predictions on the train data
     y_pred = best_pipeline.predict(X_train)  
@@ -573,9 +566,9 @@ def train_model(df, target_column, drop_columns):
     mse_train = mean_squared_error(y_train, y_pred)
     # Calculate R-squared (R2) score
     r2_train = r2_score(y_train, y_pred)
-    print(y_train, y_pred)
+
     
-    score = {"Mean Squared Error (test)":mse_test, "R^2 (test)": r2_test, "Mean Squared Error (train)": mse_train, "R^2 (train)": r2_train}
+    score = {"mse test":mse_test, "r2 test": r2_test, "mse train": mse_train, "r2 train": r2_train}
 
     return best_pipeline, X_train, score
 
