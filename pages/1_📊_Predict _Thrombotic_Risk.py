@@ -50,22 +50,28 @@ boundaries, timepoints= import_json_values_cached()
 # Upload patient's data
 uploaded_file = st.sidebar.file_uploader("Upload Patient Data", type=["xlsx"])
 
-
 # Upload model
 uploaded_model_file = st.sidebar.file_uploader("Upload Predictive Model", type = ["pkl"])
-
 
 # Download 
 st.sidebar.button("Export results") # Move to end
 
 #--------------------------Patient info--------------------------#
 # Get patient data from uploaded file
-if uploaded_file != None:
+if uploaded_file != None and uploaded_model_file != None :
 
     # Read patient data 
     df = pd.read_excel(uploaded_file, engine="openpyxl")
     patientBaseline = pd.read_excel(uploaded_file, sheet_name = 0, engine = "openpyxl")
     patientTEG = pd.read_excel(uploaded_file, sheet_name = 1, engine = "openpyxl")
+
+    # import training data and models from the uploaded pkl file
+    uploaded_model = joblib.load(uploaded_model_file)
+    trainedModelTEG = uploaded_model.get("TEG model")
+    trainedModelBaseline = uploaded_model.get("Baseline model")
+    trainingTEGColumns = uploaded_model.get("TEG column names")
+    trainingBaselineColumns = uploaded_model.get("Baseline column names")
+    extend_data = uploaded_model.get("Extend data")
 
     # clean patient data
     cleanPatientBaseline, cleanPatientTEG, tegValues = transform_data(patientBaseline, patientTEG, boundaries, timepoints)
@@ -76,6 +82,8 @@ if uploaded_file != None:
 
     # Patient Data Header #
     st.header(':green[Patient Data Uploaded]')
+
+    # Compare patients uploaded with current demographics
 
     # Organizing text in columns
     col1, col2, col3, col4 = st.columns(4)
@@ -147,53 +155,41 @@ if uploaded_file != None:
     # display thrombosis risk
     st.markdown("""---""")
     
-    if uploaded_model_file != None:
 
-        st.header(":green[Patient's Calculated Risk of Thrombosis: ]")
+    st.header(":green[Patient's Calculated Risk of Thrombosis: ]")
 
-        # import training data and models from the uploaded pkl file
-        uploaded_model = joblib.load(uploaded_model_file)
-        trainingData  = uploaded_model.get("Training data")
-        trainingBaseline = uploaded_model.get("Baseline training data")
-        trainingTEG = uploaded_model.get("TEG training data")
-        trainedModelTEG = uploaded_model.get("TEG model")
-        trainedModelBaseline = uploaded_model.get("Baseline model")
-        trainingTEGColumns = uploaded_model.get("TEG column names")
-        trainingBaselineColumns = uploaded_model.get("Baseline column names")
+    
 
-        # clean the imported data before using in predictions
-        cleanPatientTEG_updated = check_column_names(cleanPatientTEG, trainingTEGColumns)
-        cleanPatientBaseline_updated = check_column_names(cleanPatientBaseline, trainingBaselineColumns)
+    # clean the imported data before using in predictions
+    cleanPatientTEG_updated = check_column_names(cleanPatientTEG, trainingTEGColumns)
+    cleanPatientBaseline_updated = check_column_names(cleanPatientBaseline, trainingBaselineColumns)
 
-        # get prediction from baseline model, make string to display percentage
-        baselineRisk = predict(cleanPatientBaseline_updated, ['Record ID', 'Events'], trainedModelBaseline)
-        baselineRiskText = "".join([str(round(baselineRisk[0] * 100, 2)), "%"])
-        st.subheader(":blue[Based on general patient info:]")
-        st.subheader(baselineRiskText)
+    # get prediction from baseline model, make string to display percentage
+    baselineRisk = predict(cleanPatientBaseline_updated, ['Record ID', 'Events'], trainedModelBaseline)
+    baselineRiskText = "".join([str(round(baselineRisk[0] * 100, 2)), "%"])
+    st.subheader(":blue[Based on general patient info:]")
+    st.subheader(baselineRiskText)
 
-        # get prediction from TEG model, iterate over each TEG record and display percentage for each
-        tegRisk = predict(cleanPatientTEG_updated, ['Record ID', 'Events'], trainedModelTEG)
-        st.subheader(":blue[Based on TEG info:]")
-        tegRiskText = []
-        tegRiskTextID = []
-        tegRiskTextNum = []
-        for i in range (len(tegRisk)):
-            tegRiskText.append(str(round(tegRisk[i] * 100, 2)))
-        for i in range (len(tegRiskText)):
-            tegRiskTextID.append("".join(["From record ", str(tegRecordID[i]), " at timepoint ", tegTimepoint[i], ":"]))
-            tegRiskTextNum.append("".join([tegRiskText[i], "%"]))
-            st.subheader(tegRiskTextID[i])
-            st.subheader(tegRiskTextNum[i])
-        st.markdown("""---""")
+    # get prediction from TEG model, iterate over each TEG record and display percentage for each
+    tegRisk = predict(cleanPatientTEG_updated, ['Record ID', 'Events'], trainedModelTEG)
+    st.subheader(":blue[Based on TEG info:]")
+    tegRiskText = []
+    tegRiskTextID = []
+    tegRiskTextNum = []
+    for i in range (len(tegRisk)):
+        tegRiskText.append(str(round(tegRisk[i] * 100, 2)))
+    for i in range (len(tegRiskText)):
+        tegRiskTextID.append("".join(["From record ", str(tegRecordID[i]), " at timepoint ", tegTimepoint[i], ":"]))
+        tegRiskTextNum.append("".join([tegRiskText[i], "%"]))
+        st.subheader(tegRiskTextID[i])
+        st.subheader(tegRiskTextNum[i])
+    st.markdown("""---""")
 
-        # illustrate the training data demographics
-        st.subheader("Demographics of the Training Data")
-        st.write("""This is an overview of the demographics of the data used in the training of your predictive model. Please consider how your patient
-                 fits in with these demographics; if there is little to no representation of their age, race, etc. the model's prediction may not
-                 be as accurate.""")
-        st.plotly_chart(visualize_data(trainingBaseline, trainingTEG), use_container_width=True)
-    else:
-        st.subheader(":red[No risk calculated yet]")
+    # illustrate the training data demographics
+    st.subheader("Demographics of the Training Data")
+    st.write("""This is an overview of the demographics of the data used in the training of your predictive model. Please consider how your patient
+                fits in with these demographics; if there is little to no representation of their age, race, etc. the model's prediction may not
+                be as accurate.""")
 
 # display outline of page with no information
 else:

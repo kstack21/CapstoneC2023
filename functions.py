@@ -492,7 +492,12 @@ def visualize_data(clean_baseline_df, clean_TEG_df):
 
     return fig
 
-def train_model(df, target_column, drop_columns, quantile_range=(5,95)):
+def train_model(df, target_column, drop_columns, quantile_range=(5,95), 
+                param_grid = {'xgb_regressor__max_depth': [3, 4, 5],
+                              'xgb_regressor__gamma': [0, 0.1, 0.2],
+                              'xgb_regressor__min_child_weight': [1, 2, 5]},
+                              scoring = 'r2'):
+    
     """
     Trains an XGBoost regression model on the given DataFrame using grid search for hyperparameter tuning.
 
@@ -531,19 +536,12 @@ def train_model(df, target_column, drop_columns, quantile_range=(5,95)):
         ('xgb_regressor', XGBRegressor())    # XGBoost regressor
     ])
 
-    # Define hyperparameter grid for tuning (adjust as needed)
-    param_grid = {
-        'xgb_regressor__max_depth': [3, 4, 5],
-        'xgb_regressor__gamma': [0, 0.1, 0.2],
-        'xgb_regressor__min_child_weight': [1, 2, 5]
-    }
-
     # Initialize K-Fold cross-validation
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
     # Initialize GridSearchCV for hyperparameter tuning
     grid_search = GridSearchCV(estimator=pipeline, param_grid=param_grid,
-                               scoring='r2', cv=kf)
+                               scoring=scoring, cv=kf)
 
     # Fit the model and perform hyperparameter tuning
     grid_search.fit(X_train, y_train)
@@ -558,7 +556,7 @@ def train_model(df, target_column, drop_columns, quantile_range=(5,95)):
     mse_test = mean_squared_error(y_test, y_pred)
     # Calculate R-squared (R2) score
     r2_test = r2_score(y_test, y_pred)
-
+    print(y_test, y_pred)
 
     # Make predictions on the train data
     y_pred = best_pipeline.predict(X_train)  
@@ -566,7 +564,7 @@ def train_model(df, target_column, drop_columns, quantile_range=(5,95)):
     mse_train = mean_squared_error(y_train, y_pred)
     # Calculate R-squared (R2) score
     r2_train = r2_score(y_train, y_pred)
-
+    print(y_train, y_pred)
     
     score = {"mse test":mse_test, "r2 test": r2_test, "mse train": mse_train, "r2 train": r2_train}
 
