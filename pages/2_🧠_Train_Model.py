@@ -32,7 +32,7 @@ st.markdown("""This page allows you to train a predictive model
             and fine-tune its parameters. 
             It provides options for uploading new data, 
             selecting model algorithms, and adjusting training settings.""") 
-st.markdown("Start by uploding a dataset in the correct format using the button to the left.")
+st.markdown("Start by uploding a dataset using the button to the left, ensuring that it has the same format as the downloadable template on the welcome page.")
 
 
 #--------------------------Cached Functions--------------------------#

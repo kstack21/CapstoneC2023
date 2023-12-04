@@ -33,6 +33,7 @@ st.write("""
 st.markdown("""---""")
 st.markdown(
     """
+    Welcome to CLOT WATCH!
     CLOT WATCH predicts a patient's risk of thrombosis with the click of a few buttons!   
     
     To use the current predictive model to obtain a patient's predicted risk, use the side bar to navigate to page 1
@@ -40,59 +41,67 @@ st.markdown(
     
     To upload data to train a new predictive model, use the side bar to navigate to page 2 ('Train Model').
 
-    If you're new here, refer to the instructions below!   
+    If you're new here (or if you want a refresher on what to do), refer to the instructions below!   
     """
 )
 st.markdown("""---""")
 st.subheader("Instructions for CLØT WATCH")
 st.write("""
 
-1. If you have a .pkl file for trained model and wish to only predict the thrombotic risk of a patient, skip to step 14. If you do not have a .pkl file for the trained model, and wish to train a new model, continue to step 2. 
+1. Click the button at the bottom of the page labeled 'Download Template' to download the data input template.
+         
+2. If you have a .pkl file for trained model and wish to only predict the thrombotic risk of a patient, skip to step 14. If you do not have a .pkl file for the trained model, and wish to train a new model, continue to step 2.  
 
-2. From the “Welcome” page, navigate to the “Train Model” tab. 
+3. Enter the training data (your full dataset) into the template file, making sure to follow the formatting of the example row.
 
-3. Follow the instructions on data formatting. 
+4. Delete the example row once you have entered your data. 
 
-4. Check the data file for typos and missing entries/columns. 
+5. Check the data file for typos and missing entries/columns. Save the file  with a new name when you are sure everything has been filled out properly.
+        
+6. From the “Welcome” page, navigate to the “Train Model” tab.
 
-5. Upload patient training data as an excel file. 
+7. Upload your Excel file (saved in step 5) using the button on the left labeled 'Upload Data Set of Patient Data'. 
 
-6. If an error message appears after the data is uploaded, return to step 4. 
+8. If an error message appears after the data is uploaded, return to step 3. Likely this is due to a data entry error. 
 
-7. Review initial data analysis seen on page. 
+9. Review the initial data analysis that appears on the page. 
 
-8. Select desired parameters. 
+10. Select the desired parameters. It is alright to leave them as the default selections if you have no preference. 
 
-9. Click “Train and Validate” on the sidebar. 
+11. Click the “Train and Validate” button on the sidebar to the left. 
 
-10. Scroll to the bottom of the page. 
+12. Once training and validation has been completed, scroll through to review the model analysis. 
 
-11. Click the “download model” link 
+13. Click one of the “Download model” links at the bottom of the page. Further descriptions of the difference can be seen on the page. 
 
-12. Verify the model is downloaded as a .pkl file. 
+14. Verify the model has downloaded as a .pkl file. 
 
-13. Navigate to the “Predict Thrombotic Risk” tab. 
+15. Navigate to the “Predict Thrombotic Risk” tab. This is where you will predict the thrombotic risk of one patient based on your trained predictive model.
 
-14. Follow instructions on data formatting. 
+16. Enter your patient's data into the template file you downloaded from this page (if you no longer have a clean version of this file, you can re-download it at the bottom of this page).
 
-15. Check the data file for typos and missing entries/columns. 
+17. Delete the example row once you have entered your data.
 
-16. In the sidebar, under “Upload Patient Data” upload your single patient data file. 
+18. Check the data file for typos and missing entries/columns. Save the file  with a new name when you are sure everything has been filled out properly.
 
-17. Verify patient data is uploaded and visible on webpage. If an error message appears after the data is uploaded, return to step 15. 
+19. In the sidebar to the left, upload your single patient data file under “Upload Patient Data”. 
 
-18. In the sidebar, upload your model’s .pkl file. 
+20. Verify that your patient's data is uploaded and an overview is visible on the webpage. If an error message appears after the data is uploaded, return to step 16. 
 
-19. Verify all page sections contain data. 
+21. In the sidebar, upload your model's .pkl file.
 
-20. Click “export results” on the sidebar. 
+22. Your patient's risk will now be displayed on the page. One risk percentage will be calculated for each TEG record in their file, as well as one based on their general information.
 
-13. If the user wishes to train a new model with a different selection of parameters, return to step 3. 
+20. Click the “export results” butotn on the sidebar to the left to export these results. 
 
-14. User may exit the website. """)
+21. If you wish to train a new model with a different selection of parameters, return to step 3. Otherwise, you can safely exit the website.
+
+Note: your patient data will be deleted from the website cache within 24 hours.
+
+""")
 
 
-st.write("Download the template file here to get started! The first line is filled in with example data, please follow its format and delete it when you have finished entering your data.")
+st.write("Download the template file here to get started! The first line is filled in with example data; please follow its format and delete it when you have finished entering your data.")
 # data entry template download
 base_directory = os.getcwd()
 filename = 'HeadersTemplate.xlsx'

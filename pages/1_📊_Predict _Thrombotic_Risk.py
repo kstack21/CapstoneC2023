@@ -23,7 +23,7 @@ st.set_page_config(
 st.title("Predict a Patient's Risk of Thrombosis")
 st.write("Begin by uploading a patient's file using the button 'Upload Patient Data' in the sidebar!")
 st.write("Please make sure that the file is in the same format as the downloadable template on the welcome page.")
-st.write("Please also upload a trained predictive model (if you just did this on the 'Train Model' page, look in your downloads for a file called 'trained_model.pkl').")  
+st.write("Please also upload a trained predictive model (if you just did this on the 'Train Model' page, look in your downloads for a file called 'CLOTWATCH_predictive_model.pkl').")  
 
 #--------------------------Cached Functions--------------------------#
 
@@ -82,8 +82,6 @@ if uploaded_file != None and uploaded_model_file != None :
 
     # Patient Data Header #
     st.header(':green[Patient Data Uploaded]')
-
-    # Compare patients uploaded with current demographics
 
     # Organizing text in columns
     col1, col2, col3, col4 = st.columns(4)
@@ -154,11 +152,7 @@ if uploaded_file != None and uploaded_model_file != None :
 
     # display thrombosis risk
     st.markdown("""---""")
-    
-
     st.header(":green[Patient's Calculated Risk of Thrombosis: ]")
-
-    
 
     # clean the imported data before using in predictions
     cleanPatientTEG_updated = check_column_names(cleanPatientTEG, trainingTEGColumns)
@@ -185,11 +179,9 @@ if uploaded_file != None and uploaded_model_file != None :
         st.subheader(tegRiskTextNum[i])
     st.markdown("""---""")
 
-    # illustrate the training data demographics
-    st.subheader("Demographics of the Training Data")
-    st.write("""This is an overview of the demographics of the data used in the training of your predictive model. Please consider how your patient
-                fits in with these demographics; if there is little to no representation of their age, race, etc. the model's prediction may not
-                be as accurate.""")
+    # Note about training data demographics
+    st.write("""Note: please be mindful of the demographics of the data used to train your predictive model.
+             The more represented your patient is in the training data, the more reliable the prediction will be.""")
 
 # display outline of page with no information
 else:
