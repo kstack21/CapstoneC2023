@@ -106,7 +106,7 @@ if uploaded_file != None and uploaded_model_file != None :
     with col2:
         # Sex
         if 'Sex' in df:
-            if df.at[0,'Sex']:
+            if df.at[0,'Sex']: 
                 temp = "Male"
             else:
                 temp = "Not Male (Female or other)"
@@ -119,7 +119,7 @@ if uploaded_file != None and uploaded_model_file != None :
                 temp = "Yes"
             else:
                 temp = "No"
-            st.metric(label="Hypertension", value = temp)
+            st.metric(label="Hypertension", value = temp) 
         else:
             st.metric(label = ":red[Hypertension]", value = "n/a")
 
