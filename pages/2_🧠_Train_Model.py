@@ -10,6 +10,8 @@ import json
 import re
 import base64
 import shap
+import ast
+import pickle
 
 # Get higher level functions
 current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -99,8 +101,8 @@ def extend_data_cached(clean_TEG_df, tegValues, user_extend_data):
     return extended_df, new_columns
 
 @st.cache_resource
-def train_model_cached(df, target_column, drop_columns):
-    best_pipeline, X_train, score = train_model(df, target_column, drop_columns)
+def train_model_cached(df, target_column, drop_columns,quantile_ranges, param_grid, scoring):
+    best_pipeline, X_train, score = train_model(df, target_column, drop_columns,quantile_ranges, param_grid, scoring)
 
     importance_df, shap_values = feature_importance(best_pipeline, X_train)
     return best_pipeline, X_train, score, importance_df, shap_values
@@ -123,30 +125,84 @@ def user_selection_cached(user_TEG_df,selected_features, columns_to_keep, collin
     return model2_df
 
 @st.cache_data
-def download_cached(_object_input):
-    joblib.dump(_object_input, "trained_model.pkl")
-    with open("trained_model.pkl", "rb") as model_file:
-        model_binary = model_file.read()
-    
-    # Encode the model_binary in base64
-    b64 = base64.b64encode(model_binary).decode()
-    
-    # Create a download link for the model file
-    href = f'<a href="data:application/octet-stream;base64,{b64}" download="trained_model.pkl">Download Model</a>'
-        
+def download_cached(_my_dict, my_variable,file_name):
+    # Serialize the dictionary to bytes using pickle
+    serialized_dict = pickle.dumps(_my_dict)
+
+    # Encode the serialized bytes in base64
+    b64_encoded = base64.b64encode(serialized_dict).decode()
+
+    # Create a download link for the pickled dictionary
+    href = f'<a href="data:application/octet-stream;base64,{b64_encoded}" download={file_name}>Download Dictionary</a>'
+
     return href
 
 
 #--------------------------Side bar: Upload data --------------------------#
-# Upload patient's data (Excel format only) button
-uploaded_file = st.sidebar.file_uploader("Upload Data Set of Patient Data (XLSX)", type=["xlsx"])
+with st.sidebar:
+    # Upload patient's data (Excel format only) button
+    uploaded_file = st.file_uploader("Upload Data Set of Patient Data (XLSX)", type=["xlsx"])
 
-# Side bar:  Toggle user chooses to extend data
-user_extend_data = st.sidebar.toggle("Calculate rates", value=True, disabled= uploaded_file is not None)
-#-------------------------- Main page--------------------------#
-st.markdown("""---""")
-if uploaded_file is not None:
+    # Side bar:  Toggle user chooses to extend data
+    user_extend_data = st.toggle("Calculate rates", value=True, disabled= uploaded_file is not None)
+
+    # Advanced settings
     
+    # Preset values
+    quantile_ranges = (5,95)
+    param_grid = {
+        'xgb_regressor__max_depth': [3, 4, 5],
+        'xgb_regressor__gamma': [0, 0.1, 0.2],
+        'xgb_regressor__min_child_weight': [1, 2, 5]
+    }
+    scoring = 'r2'
+
+
+    st.markdown("""---""")
+    advanced_settings = st.toggle("Advanced settings", value=False, disabled= uploaded_file is not None)
+
+    if advanced_settings:
+
+         # Modify quantile ranges 
+        st.subheader("Robust scaling of target column:", help="[Why?](https://www.geeksforgeeks.org/standardscaler-minmaxscaler-and-robustscaler-techniques-ml/)")
+        qrc1, qrc2 = st.columns(2)
+        with qrc1:
+            new_min = st.number_input("Min Quantile:", min_value=float(0), value= float(quantile_ranges[0]))
+        with qrc2:
+            new_max = st.number_input("Max Quantile:", min_value=float(new_min), max_value=float(100), value= float(quantile_ranges[1]))
+        quantile_ranges = (new_min, new_max)
+
+
+        # Modify scoring function
+        st.subheader("Grid search scoring function:", help="[What are the options?](https://scikit-learn.org/stable/modules/model_evaluation.html#common-cases-predefined-values)")
+        scoring = st.text_input("Scoring function", scoring)
+
+
+        # Modify hyper parameter tunning
+        st.subheader("Hyperparameter tunning:", help="[What are the options?](https://xgboost.readthedocs.io/en/stable/parameter.html#parameters-for-tree-booster)")
+        new_param_grid = st.text_area("Enter Parameter Grid:", param_grid)
+        try:
+            # Attempt to parse the input as JSON
+            param_grid = ast.literal_eval(new_param_grid)
+        except :
+            st.warning(f"Your input is in the wrong format.")
+        param_grid
+
+
+        # Modify collinearity
+        st.subheader("Multicollinearity:", help="The following structure contains column names that might be collinear. Make sure column names are properly spelled. Used for generation of model 2")
+        new_collinearity = st.text_area("Update collinearity:", collinearity)
+        try:
+            # Attempt to parse the input as JSON
+            collinearity = ast.literal_eval(new_collinearity)
+        except :
+            st.warning(f"Your input is in the wrong format.")
+        collinearity
+
+    
+#-------------------------- Main page--------------------------#
+if uploaded_file is not None:
+    st.markdown("""---""")
     # show data demographics
     st.subheader("Demographics of the Uploaded Dataset")
 
@@ -158,21 +214,21 @@ if uploaded_file is not None:
 
     st.markdown("""---""")
 
-    # show most influential factors
-    st.subheader("The intial models have been created! The current most influential factors are...")
-
     # Extend data:
     extended_df, new_columns = extend_data_cached(clean_TEG_df, tegValues, user_extend_data)
 
     # store column names
     baselineColumns = list(clean_baseline_df.columns)
-    tegColumns = list(extended_df.columns)
+    tegColumns1 = list(extended_df.columns)
     
     # Generate model
     with st.spinner('Generating model first draft...'):
         # Make models to find contribution of each parameter
-        best_model_baseline, baseline_train, baseline_score, importance_df_bsaeline, shap_values_baseline = train_model_cached(clean_baseline_df, 'Events', ['Record ID'])
-        best_model_TEG1, TEG1_train, TEG1_score, importance_df_TEG1, shap_values_TEG1 = train_model_cached(extended_df, 'Events', ['Record ID'])
+        best_model_baseline, baseline_train, baseline_score, importance_df_bsaeline, shap_values_baseline = train_model_cached(clean_baseline_df, 'Events', ['Record ID'],quantile_ranges, param_grid, scoring)
+        best_model_TEG1, TEG1_train, TEG1_score, importance_df_TEG1, shap_values_TEG1 = train_model_cached(extended_df, 'Events', ['Record ID'],quantile_ranges, param_grid, scoring)
+
+    # show most influential factors
+    st.subheader("The intial models have been created! The current most influential factors are...")
 
     # Plot SHAP summary plot
     st.subheader(":blue[General Patient Information:]")
@@ -198,8 +254,11 @@ if uploaded_file is not None:
             # Filter keys based on prefixes
             filtered_keys = [key for key in columns_to_keep.keys() if any(key.startswith(prefix) for prefix in elements)]
 
+            # Sort filtered_keys based on values in descending order
+            sorted_keys = sorted(filtered_keys, key=lambda key: columns_to_keep[key], reverse=True)
+
             # Create a list of strings by appending keys with values multiplied by 100
-            radio_labels = [f"{key} ({round(columns_to_keep[key] * 100, 2)}%)" for key in filtered_keys]
+            radio_labels = [f"{key} ({round(columns_to_keep[key] * 100, 2)}%)" for key in sorted_keys]
 
             # Create a radio button to select a feature from the group
             selected_feature = st.radio("", radio_labels, key=group_name)
@@ -223,11 +282,20 @@ if uploaded_file is not None:
         model2_df = user_selection_cached(user_TEG_df,selected_features, columns_to_keep, collinearity)
 
         with st.spinner('Generating optimized model...'):
+
+            # Save column names
+            tegColumns2 = list(model2_df.columns)
             # Make model and find feature importance
-            best_model_TEG2, TEG2_train, TEG2_score, importance_df_TEG2, shap_values_TEG2 = train_model_cached(model2_df, 'Events', ['Record ID'])
+            best_model_TEG2, TEG2_train, TEG2_score, importance_df_TEG2, shap_values_TEG2 = train_model_cached(model2_df, 'Events', ['Record ID'],quantile_ranges, param_grid, scoring)
 
         # introduce new model
         st.markdown("""---""")
+        # Plot SHAP summary plot
+        st.subheader("And here are the TEG factors that most influence your model's predictions:")
+        st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False, max_display=10))
+        st.markdown("""---""")
+
+
         st.subheader("Your predictive model has been created! Here are its validity scores:")
 
         tegScores1 = pd.DataFrame(TEG1_score, index=["TEG-based model (TEG model 1)"])
@@ -235,31 +303,25 @@ if uploaded_file is not None:
         baselineScores = pd.DataFrame(baseline_score, index=["General info based model"])
         st.table(pd.concat([tegScores1, tegScores2, baselineScores], sort=False))
 
-        # Plot SHAP summary plot
-        st.subheader("And here are the TEG factors that most influence your model's predictions:")
-        st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False, max_display=10))
-        st.markdown("""---""")
 
         # Save the trained model to a file 
         toDownload1 = {"TEG model": best_model_TEG1,
                       "Baseline model": best_model_baseline,
-                      "Training data": TEG1_train,
-                      "TEG training data": clean_TEG_df,
-                      "Baseline training data": clean_baseline_df,
-                      "TEG column names": tegColumns,
-                      "Baseline column names": baselineColumns}
+                      "TEG column names": tegColumns1,
+                      "Baseline column names": baselineColumns,
+                      "Extend data":user_extend_data}
+        
         toDownload2 = {"TEG model": best_model_TEG2,
                        "Baseline model": best_model_baseline,
-                       "Training data": TEG2_train,
-                       "TEG training data": clean_TEG_df,
-                       "Baseline training data": clean_baseline_df,
-                       "TEG column names": tegColumns,
-                       "Baseline column names": baselineColumns}
+                       "TEG column names": tegColumns2,
+                       "Baseline column names": baselineColumns,
+                      "Extend data":user_extend_data}
+        
         st.subheader("Click one of the links below ('Download Model') to download your predictive model!")
         st.markdown("You will need this for the next page, where you can predict the risk of an individual patient.")
 
-        href1 = download_cached(toDownload1)
-        href2 = download_cached(toDownload2)
+        href1 = download_cached(toDownload1,tegColumns1,"TEG_1_model.pkl")
+        href2 = download_cached(toDownload2,tegColumns2, "TEG_2_model.pkl")
 
         st.write("With TEG-based model 1:")
         st.markdown(href1, unsafe_allow_html=True)
