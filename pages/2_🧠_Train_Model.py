@@ -133,7 +133,7 @@ def download_cached(_my_dict, my_variable,file_name):
     b64_encoded = base64.b64encode(serialized_dict).decode()
 
     # Create a download link for the pickled dictionary
-    href = f'<a href="data:application/octet-stream;base64,{b64_encoded}" download={file_name}>Download Dictionary</a>'
+    href = f'<a href="data:application/octet-stream;base64,{b64_encoded}" download={file_name}>Download Model</a>'
 
     return href
 
@@ -289,20 +289,18 @@ if uploaded_file is not None:
             best_model_TEG2, TEG2_train, TEG2_score, importance_df_TEG2, shap_values_TEG2 = train_model_cached(model2_df, 'Events', ['Record ID'],quantile_ranges, param_grid, scoring)
 
         # introduce new model
-        st.markdown("""---""")
-        # Plot SHAP summary plot
-        st.subheader("And here are the TEG factors that most influence your model's predictions:")
-        st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False, max_display=10))
-        st.markdown("""---""")
-
-
         st.subheader("Your predictive model has been created! Here are its validity scores:")
-
+        # show mse and r2 scores for train and test data
         tegScores1 = pd.DataFrame(TEG1_score, index=["TEG-based model (TEG model 1)"])
         tegScores2 = pd.DataFrame(TEG2_score, index=["TEG-based model (TEG model 2)"])
         baselineScores = pd.DataFrame(baseline_score, index=["General info based model"])
         st.table(pd.concat([tegScores1, tegScores2, baselineScores], sort=False))
 
+        st.markdown("""---""")
+        # Plot SHAP summary plot
+        st.subheader("And here are the TEG factors that most influence your model's predictions:")
+        st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False, max_display=10))
+        st.markdown("""---""")
 
         # Save the trained model to a file 
         toDownload1 = {"TEG model": best_model_TEG1,
@@ -320,8 +318,8 @@ if uploaded_file is not None:
         st.subheader("Click one of the links below ('Download Model') to download your predictive model!")
         st.markdown("You will need this for the next page, where you can predict the risk of an individual patient.")
 
-        href1 = download_cached(toDownload1,tegColumns1,"TEG_1_model.pkl")
-        href2 = download_cached(toDownload2,tegColumns2, "TEG_2_model.pkl")
+        href1 = download_cached(toDownload1,tegColumns1,"CLOTWATCH_predictive_model_1.pkl")
+        href2 = download_cached(toDownload2,tegColumns2, "CLOTWATCH_predictive_model_2.pkl")
 
         st.write("With TEG-based model 1:")
         st.markdown(href1, unsafe_allow_html=True)
