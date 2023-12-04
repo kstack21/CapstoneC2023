@@ -20,16 +20,8 @@ st.set_page_config(
     page_icon="🏥",
 )
 
-st.title("CLØT WATCH")
-st.write("""
-         :red[DISCLAIMER:    
-         CLOT WATCH was developed as an academic project by seniors at Northeastern University in collaboration with
-         Dr. Anahita Dua and her team at Massachusetts General Hospital. CLOT WATCH has been minimally tested and has
-         not been reviewed by the FDA. It should not be used to definitively assume a patient's risk of thrombosis.
-         There are many factors that may play into a patient's risk of thrombosis, and CLOT WATCH does not take all of
-         them into account. Physicians should use their own judgement and analysis of the patient in addition to, or
-         even in place of, the risk evaluation produced by CLOT WATCH.]
-         """)
+st.image("CLOTWATCH_logo.png")
+
 st.markdown("""---""")
 st.markdown(
     """
@@ -45,12 +37,12 @@ st.markdown(
     """
 )
 st.markdown("""---""")
-st.subheader("Instructions for CLØT WATCH")
+st.subheader("Instructions for CLOT WATCH")
 st.write("""
 
 1. Click the button at the bottom of the page labeled 'Download Template' to download the data input template.
          
-2. If you have a .pkl file for trained model and wish to only predict the thrombotic risk of a patient, skip to step 14. If you do not have a .pkl file for the trained model, and wish to train a new model, continue to step 2.  
+2. If you have a .pkl file for trained model and wish to only predict the thrombotic risk of a patient, skip to step 15. If you do not have a .pkl file for the trained model, and wish to train a new model, continue to step 3.  
 
 3. Enter the training data (your full dataset) into the template file, making sure to follow the formatting of the example row.
 
@@ -96,10 +88,11 @@ st.write("""
 
 21. If you wish to train a new model with a different selection of parameters, return to step 3. Otherwise, you can safely exit the website.
 
-Note: your patient data will be deleted from the website cache within 24 hours.
+:red[Note: your patient data will be deleted from the website cache within 24 hours.]
 
 """)
 
+st.markdown("""---""")
 
 st.write("Download the template file here to get started! The first line is filled in with example data; please follow its format and delete it when you have finished entering your data.")
 # data entry template download
@@ -122,8 +115,20 @@ with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
     writer.close()
 
     st.download_button(
-        label="Download template",
+        label="Download Template",
         data=buffer,
         file_name="CLOTWATCH_template.xlsx",
         mime="application/vnd.ms-excel"
     )
+
+st.markdown("""---""")
+
+st.write("""
+        :red[DISCLAIMER:    
+         CLOT WATCH was developed as an academic project by seniors at Northeastern University in collaboration with
+         Dr. Anahita Dua and her team at Massachusetts General Hospital. CLOT WATCH has been minimally tested and has
+         not been reviewed by the FDA. It should not be used to definitively assume a patient's risk of thrombosis.
+         There are many factors that may play into a patient's risk of thrombosis, and CLOT WATCH does not take all of
+         them into account. Physicians should use their own judgement and analysis of the patient in addition to, or
+         even in place of, the risk evaluation produced by CLOT WATCH.]
+         """)
