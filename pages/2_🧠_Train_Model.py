@@ -258,7 +258,7 @@ if uploaded_file is not None:
             sorted_keys = sorted(filtered_keys, key=lambda key: columns_to_keep[key], reverse=True)
 
             # Create a list of strings by appending keys with values multiplied by 100
-            radio_labels = [f"{key} ({round(columns_to_keep[key] * 100, 2)}%)" for key in sorted_keys]
+            radio_labels = [f"{key} ({round(columns_to_keep[key], 2)}%)" for key in sorted_keys]
 
             # Create a radio button to select a feature from the group
             selected_feature = st.radio("", radio_labels, key=group_name)
