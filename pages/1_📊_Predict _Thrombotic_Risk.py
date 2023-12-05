@@ -52,8 +52,9 @@ def input_data(uploaded_file):
     patientTEG = pd.read_excel(xls, sheet_names[1])
     
     # Save IDs
-    baseline_id = list("Patient "+patientBaseline["Record ID"].astype(str))
-    tegValues_id = list("Patient "+patientTEG["Record ID"].astype(str) +": "+patientTEG["Visit Timepoint"].astype(str))
+    baseline_id = patientBaseline["Record ID"].astype(str)
+    tegValues_id = {"Patient": patientTEG["Record ID"].astype(str),
+                    "Date":patientTEG["Date of TEG Collection"]}
     
     # clean patient data
     cleanPatientBaseline, cleanPatientTEG, tegValues = transform_data(patientBaseline, patientTEG, boundaries, training = False)
@@ -113,26 +114,27 @@ if uploaded_file != None and uploaded_model_file != None :
     patient_data, cleanPatientBaseline, cleanPatientTEG, tegValues, baseline_id, tegValues_id = input_data(uploaded_file)
 
     # Patients info 
-    st.header(':green[Patient Data Uploaded]')
+    st.subheader(':blue[Patients Uploaded:]')
+    st.markdown("Please review if the information below is correct.")
     st.table(patient_data)
 
     # Calculate risk
-    pred_TEG, fig_TEG = calculate_risk(cleanPatientTEG, column_TEG,model_TEG, tegValues_id, "Top 10 Factors based on TEG model")
-    pred_baseline, fig_baseline = calculate_risk(cleanPatientBaseline, columns_baseline, model_baseline, baseline_id, "Top 10 Factors based on Gen. & Comorbid. model")
+    id_teg_list = [f"Patient {patient} {date}" for patient, date in zip(tegValues_id["Patient"], tegValues_id["Date"].astype(str))]
+    pred_TEG, fig_TEG = calculate_risk(cleanPatientTEG, column_TEG,model_TEG, id_teg_list, "Most influencial factors from TEG model")
+    
+    pred_baseline, fig_baseline = calculate_risk(cleanPatientBaseline, columns_baseline, model_baseline, list(baseline_id), "Most influencial factors Gen. & Comorbid. model")
  
     # display thrombosis risk
     st.markdown("""---""")
-    st.header(":green[Patients' Calculated Risk of Thrombosis: ]")
+    st.subheader(":blue[Patients' Calculated Risk of Thrombosis:]")
     st.table(pred_baseline)
     st.table(pred_TEG)
 
-    st.subheader(":blue[Based on general patient info:]")
-    st.plotly_chart(fig_TEG)
-
-    st.subheader(":blue[Based on TEG info:]")
+    st.subheader(":blue[Most influencial factors when calculating risk of thrombosis:]")
     st.plotly_chart(fig_baseline)
+    st.plotly_chart(fig_TEG)
     
-
+    
     # Note about training data demographics
     st.write("""Note: please be mindful of the demographics of the data used to train your predictive model.
              The more represented your patient is in the training data, the more reliable the prediction will be.""")
