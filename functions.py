@@ -31,7 +31,7 @@ def merge_events_count(baseline_df, tegValues_df, events_df):
 
     return baseline_df, tegValues_df
 
-def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training = True):
+def transform_data(baseline_df, tegValues_df, boundaries, training = True):
     """
     Transform and clean the given baseline and TEG values DataFrames.
 
@@ -235,10 +235,10 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
     clean_TEG_df = pd.get_dummies(clean_TEG_df, columns=columns_to_dummy_TEG,
                         prefix=columns_to_dummy_TEG)
 
-    #if training:
+    if training:
         # Drop unecessary columns
-        #clean_baseline_df = clean_baseline_df.drop(columns=['Extremity_left']) # Because it is either right, left or bilateral
-        #clean_baseline_df = clean_baseline_df.drop(columns=['Intervention Classification_Endo']) # Either endo, open or combined
+        clean_baseline_df = clean_baseline_df.drop(columns=['Extremity_left']) # Because it is either right, left or bilateral
+        clean_baseline_df = clean_baseline_df.drop(columns=['Intervention Classification_Endo']) # Either endo, open or combined
 
     # Artery affected
 
@@ -703,20 +703,26 @@ def check_column_names(df, model_column):
 
     return new_df
 
-# define prediction method
-def predict(df, columns_to_drop, best_pipeline):
+# Separate features (X) and target (y)
+def predict(df, best_pipeline):
+
+    columns_to_drop = ['Record ID','Events','Visit Timepoint', 'Date of TEG Collection']
+    df = df.copy()
+
     for column in columns_to_drop:
         if column in df.columns:
-            df.drop(column, axis=1, inplace=True)
+            df.drop(column, axis=1,inplace = True)
 
+    # Make predictions on the test data
     y_pred = best_pipeline.predict(df)
-    return y_pred
+
+    return y_pred  
 
 def iterate_importance(df, best_pipeline, ids):
 
     df = df.copy()
     
-    columns_to_drop = ['Record ID','Events', 'Visit Timepoint']
+    columns_to_drop = ['Record ID','Events', 'Visit Timepoint', 'Date of TEG Collection']
 
     for column in columns_to_drop:
         if column in df.columns:

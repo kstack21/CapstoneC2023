@@ -48,12 +48,6 @@ def import_json_values_cached():
     file_path = os.path.join(base_directory, 'data', filename)
     with open(file_path, 'r') as json_file:
         boundaries = json.load(json_file)
-
-    # Define the filename
-    filename = 'timepoints.json'
-    file_path = os.path.join(base_directory, 'data', filename)
-    with open(file_path, 'r') as json_file:
-        timepoints = json.load(json_file)
         
     #Collinear teg
     filename = 'TEG_collinear.json'
@@ -61,10 +55,10 @@ def import_json_values_cached():
     with open(file_path, 'r') as json_file:
         collinearity = json.load(json_file)
 
-    return boundaries, timepoints, collinearity
+    return boundaries, collinearity
 
 # Load general data
-boundaries, timepoints, collinearity = import_json_values_cached()
+boundaries, collinearity = import_json_values_cached()
 
 @st.cache_data
 def upoload_data_cached(uploaded_file):
@@ -82,7 +76,7 @@ def upoload_data_cached(uploaded_file):
     baseline_df, tegValues_df = merge_events_count(baseline_df, tegValues_df, events_df)
 
     # Perform data transformations
-    clean_baseline_df, clean_TEG_df, tegValues = transform_data(baseline_df, tegValues_df, boundaries, timepoints)
+    clean_baseline_df, clean_TEG_df, tegValues = transform_data(baseline_df, tegValues_df, boundaries)
 
     # Show data demographics
     fig = visualize_data(clean_baseline_df, clean_TEG_df)
@@ -262,7 +256,12 @@ if uploaded_file is not None:
     
         # show mse and r2 scores for train and test data
         st.subheader("Validity scores:")
-        st.markdown("""Explain validity scores here!!!""")
+        st.markdown("""Mean squared error (MSE) is a measure of the average squared deviation of the 
+                    predictions from the actual values. The lower the MSE, the better the model's performance.
+                    
+                    R-squared (R2) measures how well independent variables explain the variance in the 
+                    dependent variable. R2 ranges from -inf to 1, with higher values indicating better model fit.
+                    Numbers above 0 mean that the prediction is better than a model predicting the mean.""")
         tegScores1 = pd.DataFrame(TEG1_score, index=["TEG-based model 1 (All factors)"])
         tegScores2 = pd.DataFrame(TEG2_score, index=["TEG-based model 2 (Selected factors)"])
         baselineScores = pd.DataFrame(baseline_score, index=["General info based model"])
@@ -276,7 +275,7 @@ if uploaded_file is not None:
                       "TEG column names": tegColumns1, # List of column names
                       "Baseline column names": baselineColumns, # List of column names,
                       "TEG model scores": TEG1_score, # Dictionary with scores
-                      "Baeline model score": baseline_score, # Dictionary with scores
+                      "Baseline model score": baseline_score, # Dictionary with scores
                       "Extend data":user_extend_data} # Boolean
         
         toDownload2 = {"TEG model": best_model_TEG2,
@@ -284,7 +283,7 @@ if uploaded_file is not None:
                        "TEG column names": tegColumns2,
                        "Baseline column names": baselineColumns,
                        "TEG model scores": TEG1_score,
-                      "Baeline model score": baseline_score,
+                      "Baseline model score": baseline_score,
                       "Extend data":user_extend_data}
         
         st.subheader("Click one of the links below to download your predictive model!")

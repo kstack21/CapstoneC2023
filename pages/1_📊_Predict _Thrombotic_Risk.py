@@ -35,16 +35,57 @@ def import_json_values_cached():
     file_path = os.path.join(base_directory, 'data', filename)
     with open(file_path, 'r') as json_file:
         boundaries = json.load(json_file)
-
-    filename = 'timepoints.json'
-    file_path = os.path.join(base_directory, 'data', filename)
-    with open(file_path, 'r') as json_file:
-        timepoints = json.load(json_file)
     
-    return boundaries, timepoints
+    return boundaries
 
 # Load general data
-boundaries, timepoints= import_json_values_cached()
+boundaries = import_json_values_cached()
+
+@st.cache_data
+def input_data(uploaded_file):
+    # Read the uploaded Excel file into a Pandas DataFrame
+    xls = pd.ExcelFile(uploaded_file, engine="openpyxl")
+    sheet_names = ['Baseline', 'TEG Values']  # Replace with your sheet names
+
+    # Access each sheet's data using the sheet name as the key
+    patientBaseline = pd.read_excel(xls, sheet_names[0])
+    patientTEG = pd.read_excel(xls, sheet_names[1])
+    
+    # Save IDs
+    baseline_id = list("Patient "+patientBaseline["Record ID"].astype(str))
+    tegValues_id = list("Patient "+patientTEG["Record ID"].astype(str) +": "+patientTEG["Visit Timepoint"].astype(str))
+    
+    # clean patient data
+    cleanPatientBaseline, cleanPatientTEG, tegValues = transform_data(patientBaseline, patientTEG, boundaries, training = False)
+
+    # Get patients general info
+    modified_df = cleanPatientBaseline[['Record ID','BMI','Is Male','White', 'Age', 'Clotting Disorder', 'Hypertension', 'Diabetes']].copy()
+    # Round 'BMI' to 2 decimal places
+    modified_df['BMI'] = modified_df['BMI'].round(2)
+    # Convert boolean columns to 'Yes' or 'No'
+    boolean_columns = ['White','Is Male', 'Hypertension', 'Diabetes']
+    for column in boolean_columns:
+        modified_df[column] = modified_df[column].map({True: 'Yes', False: 'No'})
+    # Set 'Record ID' as the index
+    modified_df.set_index('Record ID', inplace=True)
+
+    return modified_df, cleanPatientBaseline, cleanPatientTEG, tegValues, baseline_id, tegValues_id
+
+@st.cache_data
+def calculate_risk(df, column_names, _model, ids, plot_name):
+
+    # Check column names
+    checked_df = check_column_names(df, column_names)
+
+    #Get risk
+    pred = predict(checked_df, _model)
+    
+    #Plot
+    importance_df = iterate_importance(checked_df, _model, ids)
+    fig = plot_importance(importance_df ,plot_name)
+
+    return pred, fig
+    
 
 #--------------------------Side bar--------------------------#
 # Upload patient's data
@@ -53,147 +94,46 @@ uploaded_file = st.sidebar.file_uploader("Upload Patient Data", type=["xlsx"])
 # Upload model
 uploaded_model_file = st.sidebar.file_uploader("Upload Predictive Model", type = ["pkl"])
 
-# Download 
-st.sidebar.button("Export results") # Move to end
 
 #--------------------------Patient info--------------------------#
 # Get patient data from uploaded file
 if uploaded_file != None and uploaded_model_file != None :
 
-    # Read patient data 
-    df = pd.read_excel(uploaded_file, engine="openpyxl")
-    patientBaseline = pd.read_excel(uploaded_file, sheet_name = 0, engine = "openpyxl")
-    patientTEG = pd.read_excel(uploaded_file, sheet_name = 1, engine = "openpyxl")
-
-    # Save IDs
-    baseline_id = list("Patient "+baseline_df["Record ID"].astype(str))
-    tegValues_id = list("Patient "+tegValues_df["Record ID"].astype(str) +": "+tegValues_df["Visit Timepoint"].astype(str))
-
-
     # import training data and models from the uploaded pkl file
     uploaded_model = joblib.load(uploaded_model_file)
-    trainedModelTEG = uploaded_model.get("TEG model")
-    trainedModelBaseline = uploaded_model.get("Baseline model")
-    trainingTEGColumns = uploaded_model.get("TEG column names")
-    trainingBaselineColumns = uploaded_model.get("Baseline column names")
+    model_TEG = uploaded_model.get("TEG model")
+    model_baseline = uploaded_model.get("Baseline model")
+    column_TEG = uploaded_model.get("TEG column names")
+    columns_baseline = uploaded_model.get("Baseline column names")
+    scores_TEG = uploaded_model.get("TEG model scores")
+    scores_baseline = uploaded_model.get("Baseline model score")
     extend_data = uploaded_model.get("Extend data")
 
-    # clean patient data
-    cleanPatientBaseline, cleanPatientTEG, tegValues = transform_data(patientBaseline, patientTEG, boundaries, timepoints)
+    # Load patient data
+    patient_data, cleanPatientBaseline, cleanPatientTEG, tegValues, baseline_id, tegValues_id = input_data(uploaded_file)
 
-    # get IDs and timepoints of each patient TEG record
-    tegRecordID = patientTEG['Record ID']
-    tegTimepoint = patientTEG['Visit Timepoint']
-
-    # Patient Data Header #
+    # Patients info 
     st.header(':green[Patient Data Uploaded]')
+    st.table(patient_data)
 
-    # Organizing text in columns
-    col1, col2, col3, col4 = st.columns(4)
-
-    # Present General Patient Info
-    with col1:
-        # Age
-        if 'Age' in df:
-            st.metric(label = "Age", value = df.at[0,'Age'])
-        else:
-            st.metric(label = ":red[Age]", value = "n/a")
-        # Diabetes
-        if 'Diabetes' in df:
-            if df.at[0, 'Diabetes']:
-                temp = "Yes"
-            else:
-                temp = "No"
-            st.metric(label="Diabetes", value = temp)
-        else:
-            st.metric(label = ":red[Diabetes]", value = "No column named 'Diabetes'")
-        
-    with col2:
-        # Sex
-        if 'Sex' in df:
-            if df.at[0,'Sex']: 
-                temp = "Male"
-            else:
-                temp = "Not Male (Female or other)"
-            st.metric(label = "Sex", value = temp)
-        else:
-            st.metric(label = ":red[Sex]", value = "n/a")
-        # Hypertension
-        if 'Hypertension' in df:
-            if df.at[0,'Hypertension']:
-                temp = "Yes"
-            else:
-                temp = "No"
-            st.metric(label="Hypertension", value = temp) 
-        else:
-            st.metric(label = ":red[Hypertension]", value = "n/a")
-
-    with col3:
-        # Race (White vs Not White)
-        if 'White' in df:
-            if df.at[0,'White']:
-                temp = "White"
-            else:
-                temp = "Not White"
-            st.metric(label = "Race", value = temp)
-        else:
-            st.metric(label = ":red[White]", value = "n/a")
-        # Clotting Disorder
-        if 'Clotting Disorder' in df:
-            if df.at[0,'Clotting Disorder']:
-                temp = "Yes"
-            else:
-                temp = "No"
-            st.metric(label = "Clotting Disorder", value = temp)
-        else:
-            st.metric(label = ":red[Clotting Disorder]", value = "n/a")
-   
-    with col4: 
-        # BMI
-        if 'BMI' in df:
-            st.metric(label="BMI", value = round(df.at[0, 'BMI'], 2))
-        else:
-            st.metric(label = ":red[BMI]", value = "No column named 'BMI'")  
-
+    # Calculate risk
+    pred_TEG, fig_TEG = calculate_risk(cleanPatientTEG, column_TEG,model_TEG, tegValues_id, "Top 10 Factors based on TEG model")
+    pred_baseline, fig_baseline = calculate_risk(cleanPatientBaseline, columns_baseline, model_baseline, baseline_id, "Top 10 Factors based on Gen. & Comorbid. model")
+ 
     # display thrombosis risk
     st.markdown("""---""")
-    st.header(":green[Patient's Calculated Risk of Thrombosis: ]")
+    st.header(":green[Patients' Calculated Risk of Thrombosis: ]")
+    st.table(pred_baseline)
+    st.table(pred_TEG)
 
-    # clean the imported data before using in predictions
-    cleanPatientTEG_updated = check_column_names(cleanPatientTEG, trainingTEGColumns)
-    cleanPatientBaseline_updated = check_column_names(cleanPatientBaseline, trainingBaselineColumns)
-
-    # get prediction from baseline model, make string to display percentage
-    baselineRisk = predict(cleanPatientBaseline_updated, ['Record ID', 'Events'], trainedModelBaseline)
-    baselineRiskText = "".join([str(round(baselineRisk[0] * 100, 2)), "%"])
     st.subheader(":blue[Based on general patient info:]")
-    st.subheader(baselineRiskText)
+    st.plotly_chart(fig_TEG)
 
-    # get prediction from TEG model, iterate over each TEG record and display percentage for each
-    tegRisk = predict(cleanPatientTEG_updated, ['Record ID', 'Events'], trainedModelTEG)
     st.subheader(":blue[Based on TEG info:]")
-    tegRiskText = []
-    tegRiskTextID = []
-    tegRiskTextNum = []
-    for i in range (len(tegRisk)):
-        tegRiskText.append(str(round(tegRisk[i] * 100, 2)))
-    for i in range (len(tegRiskText)):
-        tegRiskTextID.append("".join(["From record ", str(tegRecordID[i]), " at timepoint ", tegTimepoint[i], ":"]))
-        tegRiskTextNum.append("".join([tegRiskText[i], "%"]))
-        st.subheader(tegRiskTextID[i])
-        st.subheader(tegRiskTextNum[i])
-    st.markdown("""---""")
+    st.plotly_chart(fig_baseline)
+    
 
     # Note about training data demographics
     st.write("""Note: please be mindful of the demographics of the data used to train your predictive model.
              The more represented your patient is in the training data, the more reliable the prediction will be.""")
-
-# display outline of page with no information
-else:
-    # data header (no patient info)
-    st.header(':red[No Patient Data Uploaded]')
-
-    # display thrombosis risk
-    st.header(":red[Patient's Calculated Risk of Thrombosis: ]")
-    st.subheader(":red[No risk calculated yet]")
 
