@@ -14,6 +14,7 @@ from sklearn.model_selection import train_test_split, KFold, GridSearchCV
 from sklearn.preprocessing import OrdinalEncoder, RobustScaler, MinMaxScaler
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import r2_score, mean_squared_error
+import plotly.express as px
 
 def merge_events_count(baseline_df, tegValues_df, events_df):
     # Count the number of events for each 'Record_ID' in events_df
@@ -500,7 +501,12 @@ def train_model(df, target_column, drop_columns, quantile_range=(5,95), param_gr
 
     # Separate features (X) and target (y)
     y = df[target_column]
-    X = df.drop(labels=drop_columns + [target_column], axis=1)
+
+    drop_columns = drop_columns + [target_column]
+    X = df.copy()
+    for column in drop_columns:
+        if column in X.columns:
+            X.drop(column, axis=1,inplace = True)
 
     # Split data into training and test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)

@@ -104,8 +104,8 @@ def extend_data_cached(clean_TEG_df, tegValues, user_extend_data):
 def train_model_cached(df, target_column, drop_columns,quantile_ranges, param_grid, scoring):
     best_pipeline, X_train, score = train_model(df, target_column, drop_columns,quantile_ranges, param_grid, scoring)
 
-    importance_df, shap_values = feature_importance(best_pipeline, X_train)
-    return best_pipeline, X_train, score, importance_df, shap_values
+    importance_df = feature_importance(best_pipeline, X_train)
+    return best_pipeline, X_train, score, importance_df
 
 
 @st.cache_data
@@ -133,7 +133,7 @@ def download_cached(_my_dict, my_variable,file_name):
     b64_encoded = base64.b64encode(serialized_dict).decode()
 
     # Create a download link for the pickled dictionary
-    href = f'<a href="data:application/octet-stream;base64,{b64_encoded}" download={file_name}>Download Model</a>'
+    href = f'<a href="data:application/octet-stream;base64,{b64_encoded}" download={file_name}>{file_name}</a>'
 
     return href
 
@@ -157,7 +157,151 @@ with st.sidebar:
     }
     scoring = 'r2'
 
+    
+#-------------------------- Main page--------------------------#
+if uploaded_file is not None:
+    st.markdown("""---""")
+    # show data demographics
+    st.subheader("Demographics of the Uploaded Dataset")
 
+    # Load data
+    fig, clean_TEG_df, tegValues, clean_baseline_df = upoload_data_cached(uploaded_file)
+    
+    # Show data description
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("""---""")
+
+    # Extend data:
+    extended_df, new_columns = extend_data_cached(clean_TEG_df, tegValues, user_extend_data)
+
+    # store column names
+    baselineColumns = list(clean_baseline_df.columns)
+    tegColumns1 = list(extended_df.columns)
+    
+    # Generate model
+    with st.spinner('Generating model first draft...'):
+        # Make models to find contribution of each parameter
+        best_model_baseline, baseline_train, baseline_score, importance_df_bsaeline = train_model_cached(clean_baseline_df, 'Events', ['Record ID'],quantile_ranges, param_grid, scoring)
+        best_model_TEG1, TEG1_train, TEG1_score, importance_df_TEG1 = train_model_cached(extended_df, 'Events', ['Record ID', 'Visit Timepoint', "Date of TEG Collection"],quantile_ranges, param_grid, scoring)
+
+    # show most influential factors
+    st.subheader("The intial models have been created! The current most influential factors are...")
+
+    # Plot SHAP summary plot baseline
+    st.subheader(":blue[General Information and Comorbidities Model:]")
+    fig1 = plot_importance(importance_df_bsaeline, "Gen. & Comorbid. most influencial factors", showlegend=False)
+    st.plotly_chart(fig1)
+    
+    # Plot SHAP summary plot
+    st.subheader(":blue[All TEG Values Model:]")
+    fig2 = plot_importance(importance_df_TEG1, "TEG 1 most influencial factors", showlegend=False)
+    st.plotly_chart(fig2)
+
+    # Get list of parameters for user to select
+    columns_to_keep, user_TEG_df = user_options_cached(extended_df, tegValues, new_columns, importance_df_TEG1, user_extend_data)
+    st.markdown("""---""")
+    # User selects non collinear parameters
+
+    st.subheader("Please select one parameter from each of the following groups")
+    st.markdown("These groups of factors are related. If you have a preference for which ones are used to train the model, please choose them below. Otherwise, you can leave them as their default values. The reason this is necessary is because factors that are related can create a biased model.")
+
+    # Create empty dictionary to hold selection
+    selected_features = {}
+
+    # Use the dictionary with columns to keep to show user their options
+    for group_name , elements in collinearity.items():
+        with st.expander(f"{group_name}"):
+            
+            # Filter keys based on prefixes
+            filtered_keys = [key for key in columns_to_keep.keys() if any(key.startswith(prefix) for prefix in elements)]
+
+            # Sort filtered_keys based on values in descending order
+            sorted_keys = sorted(filtered_keys, key=lambda key: columns_to_keep[key], reverse=True)
+
+            # Create a list of strings by appending keys with values multiplied by 100
+            radio_labels = [f"{key} ({round(columns_to_keep[key]*1, 2)}%)" for key in sorted_keys]
+
+            # Create a radio button to select a feature from the group
+            selected_feature = st.radio("", radio_labels, key=group_name)
+
+            # Convert the group list to a tuple and store the selected feature in the dictionary
+            selected_features[group_name] = selected_feature
+
+    # Display selection to user
+    st.subheader("These are the parameters you have chosen:") 
+    for key, value in selected_features.items():
+        st.markdown(f"**{key}:** {value}")
+    
+
+    # tell them to train the model
+    if not st.sidebar.button("Train and Validate"):
+        st.subheader("If this looks good, click the 'Train and Validate' button to the left to train your predictive model!") 
+    
+        # Train optimized model
+        # #------------------------Side bar: Train and validate new model -----------------------#
+    else:
+       
+        # Get new dataframe with dropped values
+        model2_df = user_selection_cached(user_TEG_df,selected_features, columns_to_keep, collinearity)
+
+        with st.spinner('Generating optimized model...'):
+
+            # Save column names
+            tegColumns2 = list(model2_df.columns)
+            # Make model and find feature importance
+            best_model_TEG2, TEG2_train, TEG2_score, importance_df_TEG2= train_model_cached(model2_df, 'Events', ['Record ID', 'Visit Timepoint', "Date of TEG Collection"],quantile_ranges, param_grid, scoring)
+
+        st.markdown("""---""")
+        # Introduce new model
+        st.subheader(":blue[Non-Collinear TEG Values Model:]")
+        fig3 = plot_importance(importance_df_TEG2, "TEG 2 most influencial factors", showlegend=False)
+        st.plotly_chart(fig3)
+
+        st.markdown("""---""")
+    
+        # show mse and r2 scores for train and test data
+        st.subheader("Validity scores:")
+        st.markdown("""Explain validity scores here!!!""")
+        tegScores1 = pd.DataFrame(TEG1_score, index=["TEG-based model 1 (All factors)"])
+        tegScores2 = pd.DataFrame(TEG2_score, index=["TEG-based model 2 (Selected factors)"])
+        baselineScores = pd.DataFrame(baseline_score, index=["General info based model"])
+        st.table(pd.concat([baselineScores,tegScores1, tegScores2], sort=False))
+
+        st.markdown("""---""")
+
+        # Save the trained model to a file 
+        toDownload1 = {"TEG model": best_model_TEG1, #Pipeline
+                      "Baseline model": best_model_baseline, # Pipeline
+                      "TEG column names": tegColumns1, # List of column names
+                      "Baseline column names": baselineColumns, # List of column names,
+                      "TEG model scores": TEG1_score, # Dictionary with scores
+                      "Baeline model score": baseline_score, # Dictionary with scores
+                      "Extend data":user_extend_data} # Boolean
+        
+        toDownload2 = {"TEG model": best_model_TEG2,
+                       "Baseline model": best_model_baseline,
+                       "TEG column names": tegColumns2,
+                       "Baseline column names": baselineColumns,
+                       "TEG model scores": TEG1_score,
+                      "Baeline model score": baseline_score,
+                      "Extend data":user_extend_data}
+        
+        st.subheader("Click one of the links below to download your predictive model!")
+        st.markdown("""
+                    You will need this for the next page, where you can predict the risk of an individual patient.
+                    
+                    Both models contain the bseline model.""")
+
+        href1 = download_cached(toDownload1,tegColumns1,"CLOTWATCH_predictive_model_1.pkl")
+        href2 = download_cached(toDownload2,tegColumns2, "CLOTWATCH_predictive_model_2.pkl")
+
+        st.write()
+        st.markdown(f"Download model based on all TEG factors (model 1): {href1}" , unsafe_allow_html=True)
+        st.markdown(f"Download model based on non-correlatd TEG (model 2): {href2}", unsafe_allow_html=True)
+
+# More side bar
+with st.sidebar:
     st.markdown("""---""")
     advanced_settings = st.toggle("Advanced settings", value=False, disabled= uploaded_file is not None)
 
@@ -198,130 +342,3 @@ with st.sidebar:
         except :
             st.warning(f"Your input is in the wrong format.")
         collinearity
-
-    
-#-------------------------- Main page--------------------------#
-if uploaded_file is not None:
-    st.markdown("""---""")
-    # show data demographics
-    st.subheader("Demographics of the Uploaded Dataset")
-
-    # Load data
-    fig, clean_TEG_df, tegValues, clean_baseline_df = upoload_data_cached(uploaded_file)
-    
-    # Show data description
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("""---""")
-
-    # Extend data:
-    extended_df, new_columns = extend_data_cached(clean_TEG_df, tegValues, user_extend_data)
-
-    # store column names
-    baselineColumns = list(clean_baseline_df.columns)
-    tegColumns1 = list(extended_df.columns)
-    
-    # Generate model
-    with st.spinner('Generating model first draft...'):
-        # Make models to find contribution of each parameter
-        best_model_baseline, baseline_train, baseline_score, importance_df_bsaeline, shap_values_baseline = train_model_cached(clean_baseline_df, 'Events', ['Record ID'],quantile_ranges, param_grid, scoring)
-        best_model_TEG1, TEG1_train, TEG1_score, importance_df_TEG1, shap_values_TEG1 = train_model_cached(extended_df, 'Events', ['Record ID'],quantile_ranges, param_grid, scoring)
-
-    # show most influential factors
-    st.subheader("The intial models have been created! The current most influential factors are...")
-
-    # Plot SHAP summary plot
-    st.subheader(":blue[General Patient Information:]")
-    st.pyplot(shap.summary_plot(shap_values_baseline, baseline_train, plot_type="bar", show= False, max_display=10))
-    st.subheader(":blue[Patient TEG factors:]")
-    st.pyplot(shap.summary_plot(shap_values_TEG1, TEG1_train, plot_type="bar", show= False, max_display=10))
-
-    # Get list of parameters for user to select
-    columns_to_keep, user_TEG_df = user_options_cached(extended_df, tegValues, new_columns, importance_df_TEG1, user_extend_data)
-    st.markdown("""---""")
-    # User selects non collinear parameters
-
-    st.subheader("Please select one parameter from each of the following groups")
-    st.markdown("These groups of factors are related. If you have a preference for which ones are used to train the model, please choose them below. Otherwise, you can leave them as their default values. The reason this is necessary is because factors that are related can create a biased model.")
-
-    # Create empty dictionary to hold selection
-    selected_features = {}
-
-    # Use the dictionary with columns to keep to show user their options
-    for group_name , elements in collinearity.items():
-        with st.expander(f"{group_name}"):
-            
-            # Filter keys based on prefixes
-            filtered_keys = [key for key in columns_to_keep.keys() if any(key.startswith(prefix) for prefix in elements)]
-
-            # Sort filtered_keys based on values in descending order
-            sorted_keys = sorted(filtered_keys, key=lambda key: columns_to_keep[key], reverse=True)
-
-            # Create a list of strings by appending keys with values multiplied by 100
-            radio_labels = [f"{key} ({round(columns_to_keep[key], 2)}%)" for key in sorted_keys]
-
-            # Create a radio button to select a feature from the group
-            selected_feature = st.radio("", radio_labels, key=group_name)
-
-            # Convert the group list to a tuple and store the selected feature in the dictionary
-            selected_features[group_name] = selected_feature
-
-    # Display selection to user
-    st.subheader("These are the parameters you have chosen:")
-    st.table(selected_features)   
-    st.markdown("""---""")
-
-    # tell them to train the model
-    st.subheader("If this looks good, click the 'Train and Validate' button to the left to train your predictive model!") 
-
-    # Train optimized model
-    # #------------------------Side bar: Train and validate new model -----------------------#
-    if st.sidebar.button("Train and Validate"):
-
-        # Get new dataframe with dropped values
-        model2_df = user_selection_cached(user_TEG_df,selected_features, columns_to_keep, collinearity)
-
-        with st.spinner('Generating optimized model...'):
-
-            # Save column names
-            tegColumns2 = list(model2_df.columns)
-            # Make model and find feature importance
-            best_model_TEG2, TEG2_train, TEG2_score, importance_df_TEG2, shap_values_TEG2 = train_model_cached(model2_df, 'Events', ['Record ID'],quantile_ranges, param_grid, scoring)
-
-        # introduce new model
-        st.subheader("Your predictive model has been created! Here are its validity scores:")
-        # show mse and r2 scores for train and test data
-        tegScores1 = pd.DataFrame(TEG1_score, index=["TEG-based model (TEG model 1)"])
-        tegScores2 = pd.DataFrame(TEG2_score, index=["TEG-based model (TEG model 2)"])
-        baselineScores = pd.DataFrame(baseline_score, index=["General info based model"])
-        st.table(pd.concat([tegScores1, tegScores2, baselineScores], sort=False))
-
-        st.markdown("""---""")
-        # Plot SHAP summary plot
-        st.subheader("And here are the TEG factors that most influence your model's predictions:")
-        st.pyplot(shap.summary_plot(shap_values_TEG2, TEG2_train, plot_type="bar", show= False, max_display=10))
-        st.markdown("""---""")
-
-        # Save the trained model to a file 
-        toDownload1 = {"TEG model": best_model_TEG1,
-                      "Baseline model": best_model_baseline,
-                      "TEG column names": tegColumns1,
-                      "Baseline column names": baselineColumns,
-                      "Extend data":user_extend_data}
-        
-        toDownload2 = {"TEG model": best_model_TEG2,
-                       "Baseline model": best_model_baseline,
-                       "TEG column names": tegColumns2,
-                       "Baseline column names": baselineColumns,
-                      "Extend data":user_extend_data}
-        
-        st.subheader("Click one of the links below ('Download Model') to download your predictive model!")
-        st.markdown("You will need this for the next page, where you can predict the risk of an individual patient.")
-
-        href1 = download_cached(toDownload1,tegColumns1,"CLOTWATCH_predictive_model_1.pkl")
-        href2 = download_cached(toDownload2,tegColumns2, "CLOTWATCH_predictive_model_2.pkl")
-
-        st.write("With TEG-based model 1:")
-        st.markdown(href1, unsafe_allow_html=True)
-        st.write("With TEG-based model 2:")
-        st.markdown(href2, unsafe_allow_html=True)

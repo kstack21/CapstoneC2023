@@ -65,6 +65,11 @@ if uploaded_file != None and uploaded_model_file != None :
     patientBaseline = pd.read_excel(uploaded_file, sheet_name = 0, engine = "openpyxl")
     patientTEG = pd.read_excel(uploaded_file, sheet_name = 1, engine = "openpyxl")
 
+    # Save IDs
+    baseline_id = list("Patient "+baseline_df["Record ID"].astype(str))
+    tegValues_id = list("Patient "+tegValues_df["Record ID"].astype(str) +": "+tegValues_df["Visit Timepoint"].astype(str))
+
+
     # import training data and models from the uploaded pkl file
     uploaded_model = joblib.load(uploaded_model_file)
     trainedModelTEG = uploaded_model.get("TEG model")
