@@ -256,12 +256,15 @@ if uploaded_file is not None:
     
         # show mse and r2 scores for train and test data
         st.subheader("Validity scores:")
-        st.markdown("""Mean squared error (MSE) is a measure of the average squared deviation of the 
+        st.markdown("""
+                    Mean squared error (MSE) is a measure of the average squared deviation of the 
                     predictions from the actual values. The lower the MSE, the better the model's performance.
                     
                     R-squared (R2) measures how well independent variables explain the variance in the 
                     dependent variable. R2 ranges from -inf to 1, with higher values indicating better model fit.
-                    Numbers above 0 mean that the prediction is better than a model predicting the mean.""")
+                    Numbers above 0 mean that the prediction is better than a model predicting the mean.
+                    """)
+        
         tegScores1 = pd.DataFrame(TEG1_score, index=["TEG-based model 1 (All factors)"])
         tegScores2 = pd.DataFrame(TEG2_score, index=["TEG-based model 2 (Selected factors)"])
         baselineScores = pd.DataFrame(baseline_score, index=["General info based model"])
@@ -276,7 +279,9 @@ if uploaded_file is not None:
                       "Baseline column names": baselineColumns, # List of column names,
                       "TEG model scores": TEG1_score, # Dictionary with scores
                       "Baseline model score": baseline_score, # Dictionary with scores
-                      "Extend data":user_extend_data} # Boolean
+                      "Extend data":user_extend_data, # Boolean
+                      "Data demographics": fig} # Plotly chart
+
         
         toDownload2 = {"TEG model": best_model_TEG2,
                        "Baseline model": best_model_baseline,
@@ -284,7 +289,8 @@ if uploaded_file is not None:
                        "Baseline column names": baselineColumns,
                        "TEG model scores": TEG1_score,
                       "Baseline model score": baseline_score,
-                      "Extend data":user_extend_data}
+                      "Extend data":user_extend_data,
+                      "Data demographics": fig}
         
         st.subheader("Click one of the links below to download your predictive model!")
         st.markdown("""

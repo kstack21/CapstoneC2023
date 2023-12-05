@@ -91,7 +91,7 @@ def transform_data(baseline_df, tegValues_df, boundaries, training = True):
     # Find teg values column
     columns_to_exclude = ['Record ID', 'Visit Timepoint', 'Antiplatelet Therapy within 7 Days',
                         'Anticoagulation within 24 Hours', 'Statin within 24 Hours', 'Cilostazol within 7 days',
-                        'BP prior to blood draw', 'Events']
+                        'BP prior to blood draw', 'Events', 'Date of TEG Collection']
 
     tegValues = [col for col in tegValues_df.columns.values if col not in columns_to_exclude]
 
@@ -342,6 +342,9 @@ def transform_data(baseline_df, tegValues_df, boundaries, training = True):
 def extend_df (clean_TEG_df, tegValues):
     extended_df = clean_TEG_df.copy()
    
+   # Make sure column is in date time format
+    extended_df['Date of TEG Collection'] = pd.to_datetime(extended_df['Date of TEG Collection']).dt.date #BIG CHANGE
+
     # Sort the DataFrame by "Record ID" and "Date of TEG Collection"
     extended_df= extended_df.sort_values(by=["Record ID", "Date of TEG Collection"])
     extended_df[["Record ID", "Date of TEG Collection"]]
@@ -350,13 +353,13 @@ def extend_df (clean_TEG_df, tegValues):
     # Group by 'Record ID'
     grouped = extended_df.groupby('Record ID')
 
-    #Calculate the difference in "Date of TEG Collection"
-    extended_df['Days Diff'] = grouped["Date of TEG Collection"].diff()
+    #Calculate the difference in 'Date of TEG Collection'
+    extended_df['Days Diff'] = grouped['Date of TEG Collection'].diff()
 
     # Replace 0s to avoid infinity
+    extended_df['Days Diff'] = pd.to_timedelta(extended_df['Days Diff']).dt.total_seconds() / (24 * 60 * 60)
     extended_df["Days Diff"] = extended_df["Days Diff"].replace(0, 1)
 
-    extended_df[["Record ID", "Date of TEG Collection", "Days Diff"]]
 
     new_columns = []
     # Iterate TEG values
@@ -703,8 +706,8 @@ def check_column_names(df, model_column):
 
     return new_df
 
-# Separate features (X) and target (y)
-def predict(df, best_pipeline):
+
+def predict(df, best_pipeline, id_s):
 
     columns_to_drop = ['Record ID','Events','Visit Timepoint', 'Date of TEG Collection']
     df = df.copy()
@@ -716,10 +719,43 @@ def predict(df, best_pipeline):
     # Make predictions on the test data
     y_pred = best_pipeline.predict(df)
 
-    return y_pred  
+    # Scale prediction to be percentage
+    y_pred = y_pred*100
+
+
+    # Convert NumPy array to DataFrame with 'Record ID' as the index
+    pred_df = pd.DataFrame({'Prediction': y_pred})
+   
+    # Concatenate horizontally
+    id_pred_df = pd.concat([pred_df, id_s], axis=1)
+
+    
+    return id_pred_df  
 
 def iterate_importance(df, best_pipeline, ids):
 
+    # Create a list of strings with the format "patient {record id}" or "patient {record id}: {date}"
+    string_list = []
+
+    # Check if the 'Date of TEG Collection' column exists in the DataFrame
+    if 'Date of TEG Collection' in df.columns:
+        # Convert 'Date of TEG Collection' to string format
+        df['Date of TEG Collection'] = pd.to_datetime(df['Date of TEG Collection']).dt.strftime('%Y-%m-%d')
+
+        for index, row in df.iterrows():
+            record_id = row['Record ID']
+            date = row['Date of TEG Collection']
+            patient_string = f"Patient {record_id}: {date}"
+            string_list.append(patient_string)
+
+    else:
+        
+        for index, row in df.iterrows():
+            record_id = row['Record ID']
+            patient_string = f"Patient {record_id}"
+            string_list.append(patient_string)
+
+    
     df = df.copy()
     
     columns_to_drop = ['Record ID','Events', 'Visit Timepoint', 'Date of TEG Collection']
@@ -742,7 +778,7 @@ def iterate_importance(df, best_pipeline, ids):
         importance_df.set_index('Feature', inplace=True)
 
         # Add a new column to total_df with the corresponding index value from ids
-        total_df[ids[index]] = importance_df['Importance']
+        total_df[string_list[index]] = importance_df['Importance']
 
     # Drop rows where all values are zeros
     total_df = total_df.loc[(total_df != 0).any(axis=1)]
@@ -754,3 +790,28 @@ def iterate_importance(df, best_pipeline, ids):
     total_df.rename_axis(index='Factors', inplace=True)
 
     return total_df
+
+
+def plot_pred(TEG_pred,baseline_pred):
+    # Convert Date of TEG Collection to string for plotting
+    plot_TEG_df = TEG_pred.copy()
+    plot_TEG_df['Date of TEG Collection'] = plot_TEG_df['Date of TEG Collection'].dt.strftime('%Y-%m-%d')
+
+    # Plotly Express Scatter Plot for TEG1_pred
+    fig = px.line(plot_TEG_df, x='Date of TEG Collection', y='Prediction',
+                    color='Record ID', symbol='Record ID',
+                    title="Patient's risk of thrombosis based on TEG values and comorbidities",
+                    labels={'Prediction': 'Risk(%)'})
+
+    # Get baseline values
+    # Find the smallest and largest values
+    smallest_value = TEG_pred['Date of TEG Collection'].min()
+    largest_value = TEG_pred['Date of TEG Collection'].max()
+
+    # Plotly Express Line Plot for baseline_pred
+    double_baseline_pred = pd.concat([baseline_pred, baseline_pred])
+    baseline_pred_line = px.line(double_baseline_pred, x=[smallest_value,largest_value] * len(baseline_pred), y='Prediction', line_group='Record ID')
+    baseline_pred_line.update_traces(mode='lines', line_dash='dash', name='Baseline')
+    fig.add_trace(baseline_pred_line.data[0])
+
+    return fig
