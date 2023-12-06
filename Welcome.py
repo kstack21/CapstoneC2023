@@ -20,7 +20,7 @@ st.set_page_config(
     page_icon="🏥",
 )
 
-st.image("CLOTWATCH_logo.png")
+st.image("CLOTWATCH_logo.png", width=500)
 
 st.markdown("""---""")
 st.markdown(
@@ -37,12 +37,24 @@ st.markdown(
     """
 )
 st.markdown("""---""")
+st.write("""
+        :red[DISCLAIMER:    
+         CLOT WATCH was developed as an academic project by seniors at Northeastern University in collaboration with
+         Dr. Anahita Dua and her team at Massachusetts General Hospital. CLOT WATCH has been minimally tested and has
+         not been reviewed by the FDA. It should not be used to definitively assume a patient's risk of thrombosis.
+         There are many factors that may play into a patient's risk of thrombosis, and CLOT WATCH does not take all of
+         them into account. Physicians should use their own judgement and analysis of the patient in addition to, or
+         even in place of, the risk evaluation produced by CLOT WATCH.]
+         """)
+st.markdown("""---""")
 st.subheader("Instructions for CLOT WATCH")
 st.write("""
 
 1. Click the button at the bottom of the page labeled 'Download Template' to download the data input template.
          
 2. If you have a .pkl file for trained model and wish to only predict the thrombotic risk of a patient, skip to step 15. If you do not have a .pkl file for the trained model, and wish to train a new model, continue to step 3.  
+
+:blue[TRAIN MODEL PAGE STEPS:]
 
 3. Enter the training data (your full dataset) into the template file, making sure to follow the formatting of the example row.
 
@@ -66,7 +78,9 @@ st.write("""
 
 13. Click one of the “Download model” links at the bottom of the page. Further descriptions of the difference can be seen on the page. 
 
-14. Verify the model has downloaded as a .pkl file. 
+14. Verify the model has downloaded as a .pkl file.
+         
+:blue[PREDICT THROMBOTIC RISK PAGE STEPS:]
 
 15. Navigate to the “Predict Thrombotic Risk” tab. This is where you will predict the thrombotic risk of one patient based on your trained predictive model.
 
@@ -122,13 +136,3 @@ with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
     )
 
 st.markdown("""---""")
-
-st.write("""
-        :red[DISCLAIMER:    
-         CLOT WATCH was developed as an academic project by seniors at Northeastern University in collaboration with
-         Dr. Anahita Dua and her team at Massachusetts General Hospital. CLOT WATCH has been minimally tested and has
-         not been reviewed by the FDA. It should not be used to definitively assume a patient's risk of thrombosis.
-         There are many factors that may play into a patient's risk of thrombosis, and CLOT WATCH does not take all of
-         them into account. Physicians should use their own judgement and analysis of the patient in addition to, or
-         even in place of, the risk evaluation produced by CLOT WATCH.]
-         """)
