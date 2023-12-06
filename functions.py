@@ -14,6 +14,7 @@ from sklearn.model_selection import train_test_split, KFold, GridSearchCV
 from sklearn.preprocessing import OrdinalEncoder, RobustScaler, MinMaxScaler
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import r2_score, mean_squared_error
+import plotly.express as px
 
 def merge_events_count(baseline_df, tegValues_df, events_df):
     # Count the number of events for each 'Record_ID' in events_df
@@ -30,7 +31,7 @@ def merge_events_count(baseline_df, tegValues_df, events_df):
 
     return baseline_df, tegValues_df
 
-def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training = True):
+def transform_data(baseline_df, tegValues_df, boundaries, training = True):
     """
     Transform and clean the given baseline and TEG values DataFrames.
 
@@ -90,12 +91,12 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
     # Find teg values column
     columns_to_exclude = ['Record ID', 'Visit Timepoint', 'Antiplatelet Therapy within 7 Days',
                         'Anticoagulation within 24 Hours', 'Statin within 24 Hours', 'Cilostazol within 7 days',
-                        'BP prior to blood draw', 'Events']
+                        'BP prior to blood draw', 'Events', 'Date of TEG Collection']
 
     tegValues = [col for col in tegValues_df.columns.values if col not in columns_to_exclude]
 
     number_columns_baseline = ["Age","BMI", "Clotting Disorder", "EGFR (mL/min/1.73m2)", "ABI Right", "ABI left", "Rutherford Score"]
-    number_columns_teg = ["Visit Timepoint", "BP prior to blood draw"]+tegValues
+    number_columns_teg = ["BP prior to blood draw"]+tegValues
 
 
     # Split the column into 'Systolic' and 'Diastolic' columns
@@ -146,21 +147,7 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
     for column in tegValues:
         clean_TEG_df[column] = pd.to_numeric(clean_TEG_df[column], errors='coerce')
 
-    # Change timepoints from strings to ints that represent days after the operation.
-
-    # Create a reverse mapping dictionary
-    reverse_mapping = {v: k for k, values in timepoints.items() for v in values}
-
-    # Replace values using the reverse mapping
-    clean_TEG_df['Days from operation'] = clean_TEG_df['Visit Timepoint'].map(reverse_mapping)
-    # Convert the column to integer
-    clean_TEG_df['Days from operation'] = clean_TEG_df['Days from operation'].fillna(0).astype(int)
-
-    # Drop old column
-    clean_TEG_df.drop(columns=['Visit Timepoint'], inplace = True)
-    number_columns_teg.remove('Visit Timepoint')
-    number_columns_teg.append('Days from operation')
-
+    
     # Convert ABI values to floats
     clean_baseline_df['ABI Right'] = pd.to_numeric(clean_baseline_df['ABI Right'], errors='coerce')
     clean_baseline_df['ABI left'] = pd.to_numeric(clean_baseline_df['ABI left'], errors='coerce')
@@ -248,10 +235,10 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
     clean_TEG_df = pd.get_dummies(clean_TEG_df, columns=columns_to_dummy_TEG,
                         prefix=columns_to_dummy_TEG)
 
-    #if training:
+    if training:
         # Drop unecessary columns
-        #clean_baseline_df = clean_baseline_df.drop(columns=['Extremity_left']) # Because it is either right, left or bilateral
-        #clean_baseline_df = clean_baseline_df.drop(columns=['Intervention Classification_Endo']) # Either endo, open or combined
+        clean_baseline_df = clean_baseline_df.drop(columns=['Extremity_left']) # Because it is either right, left or bilateral
+        clean_baseline_df = clean_baseline_df.drop(columns=['Intervention Classification_Endo']) # Either endo, open or combined
 
     # Artery affected
 
@@ -355,21 +342,24 @@ def transform_data(baseline_df, tegValues_df, boundaries, timepoints, training =
 def extend_df (clean_TEG_df, tegValues):
     extended_df = clean_TEG_df.copy()
    
-    # Sort the DataFrame by "Record ID" and "Visit Timepoint"
-    extended_df= extended_df.sort_values(by=["Record ID", "Days from operation"])
-    extended_df[["Record ID", "Days from operation"]]
+   # Make sure column is in date time format
+    extended_df['Date of TEG Collection'] = pd.to_datetime(extended_df['Date of TEG Collection']).dt.date #BIG CHANGE
+
+    # Sort the DataFrame by "Record ID" and "Date of TEG Collection"
+    extended_df= extended_df.sort_values(by=["Record ID", "Date of TEG Collection"])
+    extended_df[["Record ID", "Date of TEG Collection"]]
 
 
     # Group by 'Record ID'
     grouped = extended_df.groupby('Record ID')
 
-    #Calculate the difference in 'Days from operation'
-    extended_df['Days Diff'] = grouped['Days from operation'].diff()
+    #Calculate the difference in 'Date of TEG Collection'
+    extended_df['Days Diff'] = grouped['Date of TEG Collection'].diff()
 
     # Replace 0s to avoid infinity
+    extended_df['Days Diff'] = pd.to_timedelta(extended_df['Days Diff']).dt.total_seconds() / (24 * 60 * 60)
     extended_df["Days Diff"] = extended_df["Days Diff"].replace(0, 1)
 
-    extended_df[["Record ID", "Days from operation", "Days Diff"]]
 
     new_columns = []
     # Iterate TEG values
@@ -385,7 +375,7 @@ def extend_df (clean_TEG_df, tegValues):
         # Calculate the difference in TEG values
         extended_df[diff_column_name] = grouped[value].diff()
 
-        # Divide  by the differences in 'Days from operation'
+        # Divide  by the differences in "Date of TEG Collection"
         extended_df[rate_column_name] = extended_df[diff_column_name] / extended_df['Days Diff']
 
     # Fill the first value with the next one to avoid NaN
@@ -492,12 +482,11 @@ def visualize_data(clean_baseline_df, clean_TEG_df):
 
     return fig
 
-def train_model(df, target_column, drop_columns, quantile_range=(5,95), 
-                param_grid = {'xgb_regressor__max_depth': [3, 4, 5],
-                              'xgb_regressor__gamma': [0, 0.1, 0.2],
-                              'xgb_regressor__min_child_weight': [1, 2, 5]},
-                              scoring = 'r2'):
-    
+def train_model(df, target_column, drop_columns, quantile_range=(5,95), param_grid = {
+        'xgb_regressor__max_depth': [3, 4, 5],
+        'xgb_regressor__gamma': [0, 0.1, 0.2],
+        'xgb_regressor__min_child_weight': [1, 2, 5]},
+        scoring = 'r2'):
     """
     Trains an XGBoost regression model on the given DataFrame using grid search for hyperparameter tuning.
 
@@ -515,7 +504,12 @@ def train_model(df, target_column, drop_columns, quantile_range=(5,95),
 
     # Separate features (X) and target (y)
     y = df[target_column]
-    X = df.drop(labels=drop_columns + [target_column], axis=1)
+
+    drop_columns = drop_columns + [target_column]
+    X = df.copy()
+    for column in drop_columns:
+        if column in X.columns:
+            X.drop(column, axis=1,inplace = True)
 
     # Split data into training and test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -529,6 +523,11 @@ def train_model(df, target_column, drop_columns, quantile_range=(5,95),
     y_train = target_scaler.fit_transform(y_train.values.reshape(-1, 1)).flatten()
     y_test = target_scaler.transform(y_test.values.reshape(-1, 1)).flatten()
 
+
+    # Manually adjust the scaled data to center at 0.5
+    desired_center = 0.5
+    y_train = y_train + (desired_center - np.median(y_train, axis=0))
+    y_test = y_test + (desired_center - np.median(y_test, axis=0))
 
     # Create a pipeline
     pipeline = Pipeline([
@@ -570,7 +569,6 @@ def train_model(df, target_column, drop_columns, quantile_range=(5,95),
 
     return best_pipeline, X_train, score
 
-
 def feature_importance(best_pipeline, X):
     """
     Generate SHAP (SHapley Additive exPlanations) values and a summary plot for feature importance.
@@ -611,8 +609,37 @@ def feature_importance(best_pipeline, X):
     # Sort the DataFrame by importance in descending order to find the most important features
     importance_df = importance_df.sort_values(by='Importance', ascending=False)
 
-    return importance_df, shap_values
+    # Multiply all values by 100
+    importance_df['Importance'] *= 100
 
+    return importance_df
+
+def plot_importance(importance_df, title, showlegend = True):
+
+    try:
+        # Set 'Feature' column as the index
+        importance_df = importance_df.set_index('Feature')
+        # Rename the index from 'Feature' to 'Factors'
+        importance_df.rename_axis(index='Factors', inplace=True)
+    except:
+        importance_df = importance_df.copy()
+
+    # Select the first 10 rows
+    top_10_df = importance_df.head(10)
+    # Create a horizontal bar chart using Plotly Express
+    fig = px.bar(
+        top_10_df,
+        orientation='h',  # Horizontal bars
+        title= title,
+        labels={'index': 'Factors', 'value': 'Percentage'},
+    )
+
+    # Reverse the order of the y-axis (largest value at the top)
+    fig.update_layout(yaxis_categoryorder='total ascending')
+
+    fig.update_layout(showlegend=showlegend)
+
+    return fig
 
 def user_options(extended_df, tegValues, new_columns, importance_df_TEG, user_extend_data = False):
    
@@ -679,11 +706,112 @@ def check_column_names(df, model_column):
 
     return new_df
 
-# define prediction method
-def predict(df, columns_to_drop, best_pipeline):
+
+def predict(df, best_pipeline, id_s):
+
+    columns_to_drop = ['Record ID','Events','Visit Timepoint', 'Date of TEG Collection']
+    df = df.copy()
+
     for column in columns_to_drop:
         if column in df.columns:
-            df.drop(column, axis=1, inplace=True)
+            df.drop(column, axis=1,inplace = True)
 
+    # Make predictions on the test data
     y_pred = best_pipeline.predict(df)
-    return y_pred
+
+    # Scale prediction to be percentage
+    y_pred = y_pred*100
+
+
+    # Convert NumPy array to DataFrame with 'Record ID' as the index
+    pred_df = pd.DataFrame({'Prediction': y_pred})
+   
+    # Concatenate horizontally
+    id_pred_df = pd.concat([pred_df, id_s], axis=1)
+
+    
+    return id_pred_df  
+
+def iterate_importance(df, best_pipeline, ids):
+
+    # Create a list of strings with the format "patient {record id}" or "patient {record id}: {date}"
+    string_list = []
+
+    # Check if the 'Date of TEG Collection' column exists in the DataFrame
+    if 'Date of TEG Collection' in df.columns:
+        # Convert 'Date of TEG Collection' to string format
+        df['Date of TEG Collection'] = pd.to_datetime(df['Date of TEG Collection']).dt.strftime('%Y-%m-%d')
+
+        for index, row in df.iterrows():
+            record_id = row['Record ID']
+            date = row['Date of TEG Collection']
+            patient_string = f"Patient {record_id}: {date}"
+            string_list.append(patient_string)
+
+    else:
+        
+        for index, row in df.iterrows():
+            record_id = row['Record ID']
+            patient_string = f"Patient {record_id}"
+            string_list.append(patient_string)
+
+    
+    df = df.copy()
+    
+    columns_to_drop = ['Record ID','Events', 'Visit Timepoint', 'Date of TEG Collection']
+
+    for column in columns_to_drop:
+        if column in df.columns:
+            df.drop(column, axis=1,inplace = True)
+
+    total_df = pd.DataFrame()
+
+    # Iterate through all rows in the DataFrame
+    for index, row in df.iterrows():
+        # Convert the row to a DataFrame with a single row
+        single_row_df = pd.DataFrame([row])
+
+        # Calculate shap_values for the current row
+        importance_df = feature_importance(best_pipeline, single_row_df)
+
+        # Set 'Feature' column as the index
+        importance_df.set_index('Feature', inplace=True)
+
+        # Add a new column to total_df with the corresponding index value from ids
+        total_df[string_list[index]] = importance_df['Importance']
+
+    # Drop rows where all values are zeros
+    total_df = total_df.loc[(total_df != 0).any(axis=1)]
+
+    # Sort columns based on the highest average value
+    total_df = total_df.reindex(total_df.mean(axis=1).sort_values(ascending=False).index)
+
+    # Rename the index from 'Feature' to 'Factors'
+    total_df.rename_axis(index='Factors', inplace=True)
+
+    return total_df
+
+
+def plot_pred(TEG_pred,baseline_pred):
+    # Convert Date of TEG Collection to string for plotting
+    plot_TEG_df = TEG_pred.copy()
+    plot_TEG_df['Date of TEG Collection'] = plot_TEG_df['Date of TEG Collection'].dt.strftime('%Y-%m-%d')
+
+    # Plotly Express Scatter Plot for TEG1_pred
+    fig = px.line(plot_TEG_df, x='Date of TEG Collection', y='Prediction',
+                    color='Record ID', symbol='Record ID',
+                    title="Patient's risk of thrombosis based on TEG values and comorbidities",
+                    labels={'Prediction': 'Risk(%)'})
+
+    # Get baseline values
+    # Find the smallest and largest values
+    smallest_value = TEG_pred['Date of TEG Collection'].min()
+    largest_value = TEG_pred['Date of TEG Collection'].max()
+
+    # Plotly Express Line Plot for baseline_pred
+    double_baseline_pred = pd.concat([baseline_pred, baseline_pred])
+    baseline_pred_line = px.line(double_baseline_pred, x=[smallest_value,largest_value] * len(baseline_pred), y='Prediction', line_group='Record ID')
+    baseline_pred_line.update_traces(mode='lines', line_dash='dash', name='Baseline')
+    fig.add_trace(baseline_pred_line.data[0])
+
+    return fig
