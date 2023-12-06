@@ -39,7 +39,7 @@ def import_json_values_cached():
 boundaries = import_json_values_cached()
 
 @st.cache_data
-def input_data(uploaded_file,user_extend_data):
+def input_data(uploaded_file,user_extend_data=False):
     # Read the uploaded Excel file into a Pandas DataFrame
     xls = pd.ExcelFile(uploaded_file, engine="openpyxl")
     sheet_names = ['Baseline', 'TEG Values']  # Replace with your sheet names
@@ -102,9 +102,8 @@ uploaded_model_file = st.sidebar.file_uploader("Upload Predictive Model", type =
 
 
 #--------------------------Patient info--------------------------#
-# Get patient data from uploaded file
-if uploaded_file != None and uploaded_model_file != None :
-
+# If only model is uploaded show model info
+if uploaded_model_file != None and uploaded_file == None :
     # import training data and models from the uploaded pkl file
     uploaded_model = joblib.load(uploaded_model_file)
     model_TEG = uploaded_model.get("TEG model")
@@ -118,88 +117,132 @@ if uploaded_file != None and uploaded_model_file != None :
 
     # Note about training data demographics
     st.write("""**Note:** please be mindful of the demographics of the data used to train your predictive model.
-             The more represented your patient is in the training data, the more reliable the prediction will be.""")
-    
+            The more represented your patient is in the training data, the more reliable the prediction will be.""")
+        
     with st.expander("Model evaluation"):
         if extend_data:
             st.markdown("This TEG model has been trained avoiding collinear values.")
         else:
             st.markdown("This TEG model has been trained using all possible values, including some that might be collinear.")
-        
-        st.markdown("The data demographics of the data used to trained the models were:")
-        st.plotly_chart(data_fig, use_container_width=True)
+            
+            st.markdown("The data demographics of the data used to trained the models were:")
+            st.plotly_chart(data_fig, use_container_width=True)
 
-        st.markdown("Validity score")
-        scores_TEG = pd.DataFrame(scores_TEG, index=["TEG-based model 2 (Selected factors)"])
-        scores_baseline = pd.DataFrame(scores_baseline, index=["General info based model"])
-        st.table(pd.concat([scores_baseline, scores_TEG], sort=False))
+            st.markdown("Validity score")
+            scores_TEG = pd.DataFrame(scores_TEG, index=["TEG-based model 2 (Selected factors)"])
+            scores_baseline = pd.DataFrame(scores_baseline, index=["General info based model"])
+            st.table(pd.concat([scores_baseline, scores_TEG], sort=False))
 
 
-    # Load patient data
-    patient_data, cleanPatientBaseline, cleanPatientTEG, tegValues, baseline_id, tegValues_id = input_data(uploaded_file, extend_data)
+# Get patient data from uploaded file            
+elif uploaded_file != None :
+
+    patient_data, cleanPatientBaseline, cleanPatientTEG, tegValues, baseline_id, tegValues_id = input_data(uploaded_file)
 
     # Patients info 
     st.subheader(':blue[Patients Uploaded:]')
     st.markdown("Please review if the information below is correct. The index of the table is the column called *Record ID*")
     st.table(patient_data)
 
-    # Calculate risk
-    pred_TEG, fig_TEG = calculate_risk(cleanPatientTEG, column_TEG,model_TEG, tegValues_id, "Most influencial factors from TEG model")
-    pred_baseline, fig_baseline = calculate_risk(cleanPatientBaseline, columns_baseline, model_baseline, baseline_id, "Most influencial factors Gen. & Comorbid. model")
- 
-    # Please change this, its going everwhere
-    pred_TEG_todisp = pred_TEG.copy()
-    pred_TEG_todisp['Date of TEG Collection'] = pd.to_datetime(pred_TEG['Date of TEG Collection']).dt.strftime('%Y-%m-%d')
-   # Select elements to display
-   # Select 'Record ID' using a Streamlit multiselect widget
-    #selected_record_ids = st.multiselect("Select Record IDs", merged_df['Record ID'].unique())
-    # Filter the DataFrame based on selected 'Record ID'
-    #filtered_df = merged_df[merged_df['Record ID'].isin(selected_record_ids)]
+    if uploaded_model_file != None :
 
-    # display thrombosis risk
-    st.markdown("""---""")
-    st.subheader(":blue[Patients' Calculated Risk of Thrombosis:]")
+        # import training data and models from the uploaded pkl file
+        uploaded_model = joblib.load(uploaded_model_file)
+        model_TEG = uploaded_model.get("TEG model")
+        model_baseline = uploaded_model.get("Baseline model")
+        column_TEG = uploaded_model.get("TEG column names")
+        columns_baseline = uploaded_model.get("Baseline column names")
+        scores_TEG = uploaded_model.get("TEG model scores")
+        scores_baseline = uploaded_model.get("Baseline model score")
+        extend_data = uploaded_model.get("Extend data")
+        data_fig = uploaded_model.get("Data demographics")
 
+        # Note about training data demographics
+        st.write("""**Note:** please be mindful of the demographics of the data used to train your predictive model.
+                The more represented your patient is in the training data, the more reliable the prediction will be.""")
+        
+        with st.expander("Model evaluation"):
+            if extend_data:
+                st.markdown("This TEG model has been trained avoiding collinear values.")
+            else:
+                st.markdown("This TEG model has been trained using all possible values, including some that might be collinear.")
+            
+            st.markdown("The data demographics of the data used to trained the models were:")
+            st.plotly_chart(data_fig, use_container_width=True)
 
-    # Merge DataFrames on 'Record ID'
-    #merged_df = pd.merge(pred_baseline, pred_TEG, on='Record ID', how='outer')
+            st.markdown("Validity score")
+            scores_TEG = pd.DataFrame(scores_TEG, index=["TEG-based model 2 (Selected factors)"])
+            scores_baseline = pd.DataFrame(scores_baseline, index=["General info based model"])
+            st.table(pd.concat([scores_baseline, scores_TEG], sort=False))
 
-    # # Select 'Record ID' using a Streamlit multiselect widget
-    # selected_record_ids = st.multiselect("Select Record IDs", merged_df['Record ID'].unique())
+        # Reload patient data with extend_data
+        patient_data, cleanPatientBaseline, cleanPatientTEG, tegValues, baseline_id, tegValues_id = input_data(uploaded_file, extend_data)
 
-    # # Filter the DataFrame based on selected 'Record ID'
-    # filtered_df = merged_df[merged_df['Record ID'].isin(selected_record_ids)]
-    # pred_baseline_filtered_df = pred_baseline[pred_baseline['Record ID'].isin(selected_record_ids)]
-    # pred_TEG_filtered_df = pred_TEG[pred_TEG['Record ID'].isin(selected_record_ids)]
+        # Calculate risk
+        pred_TEG, fig_TEG = calculate_risk(cleanPatientTEG, column_TEG,model_TEG, tegValues_id, "Most influencial factors from TEG model")
+        pred_baseline, fig_baseline = calculate_risk(cleanPatientBaseline, columns_baseline, model_baseline, baseline_id, "Most influencial factors Gen. & Comorbid. model")
     
-    # # Convert 'Date of TEG Collection' to string format
-    # filtered_df['Date of TEG Collection'] = pd.to_datetime(filtered_df['Date of TEG Collection']).dt.strftime('%Y-%m-%d')
+        # Please change this, its going everwhere
+        pred_TEG_todisp = pred_TEG.copy()
+        pred_TEG_todisp['Date of TEG Collection'] = pd.to_datetime(pred_TEG['Date of TEG Collection']).dt.strftime('%Y-%m-%d')
+    # Select elements to display
+    # Select 'Record ID' using a Streamlit multiselect widget
+        #selected_record_ids = st.multiselect("Select Record IDs", merged_df['Record ID'].unique())
+        # Filter the DataFrame based on selected 'Record ID'
+        #filtered_df = merged_df[merged_df['Record ID'].isin(selected_record_ids)]
 
-    # Display predictions as text # This needs to be fixed
-    for index, row in pred_baseline.iterrows():
-        record_id = row['Record ID'].astype(str)
-        prediction_baseline = row['Prediction']
-        st.markdown(f"""
-                    The baseline risk for patient **{record_id}** is **{round(prediction_baseline*1,2)}%**
-                    
-                    According to their TEG results:
-                    """)
-
-        for indexT, rowT in pred_TEG_todisp.iterrows():
-            prediction_TEG = rowT['Prediction']
-            date_teg = rowT['Date of TEG Collection']
-            st.markdown(f"- Risk at {date_teg}: {round(prediction_TEG*1,2)}%")
+        # display thrombosis risk
+        st.markdown("""---""")
+        st.subheader(":blue[Patients' Calculated Risk of Thrombosis:]")
 
 
-    st.markdown("""In the following chart the dashed lines (--) represent
-                the prediction from the Gen. & Comorbid. model and the solid lines with points (o-)
-                are the predictions based on TEG values. The colors are grouped by *Record ID* """)
-    fig_pred = plot_pred_cached(pred_TEG , pred_baseline) # This could be updated
-    st.plotly_chart(fig_pred)
+        # Merge DataFrames on 'Record ID'
+        #merged_df = pd.merge(pred_baseline, pred_TEG, on='Record ID', how='outer')
 
-    st.subheader(":blue[Most influencial factors when calculating risk of thrombosis:]")
-    st.plotly_chart(fig_baseline)
-    st.plotly_chart(fig_TEG)
+        # # Select 'Record ID' using a Streamlit multiselect widget
+        # selected_record_ids = st.multiselect("Select Record IDs", merged_df['Record ID'].unique())
+
+        # # Filter the DataFrame based on selected 'Record ID'
+        # filtered_df = merged_df[merged_df['Record ID'].isin(selected_record_ids)]
+        # pred_baseline_filtered_df = pred_baseline[pred_baseline['Record ID'].isin(selected_record_ids)]
+        # pred_TEG_filtered_df = pred_TEG[pred_TEG['Record ID'].isin(selected_record_ids)]
+        
+        # # Convert 'Date of TEG Collection' to string format
+        # filtered_df['Date of TEG Collection'] = pd.to_datetime(filtered_df['Date of TEG Collection']).dt.strftime('%Y-%m-%d')
+
+        # Display predictions as text # This needs to be fixed
+        for index, row in pred_baseline.iterrows():
+            record_id = row['Record ID'].astype(str)
+            prediction_baseline = row['Prediction']
+            #st.write("".join([":blue[Baseline-based prediction] for patient ", str(record_id), ":"]))
+            st.write(":blue[Baseline-based prediction for patient:]")
+            st.subheader("".join([str(round(prediction_baseline,2)), "%"]))
+            #st.markdown(f"""
+                        #The baseline risk for patient **{record_id}** is **{round(prediction_baseline*1,2)}%**
+                        
+                        #According to their TEG results:
+            #            """)
+
+            st.write(":blue[TEG-based prediction(s) for patient:]")
+            for indexT, rowT in pred_TEG_todisp.iterrows():
+                prediction_TEG = rowT['Prediction']
+                date_teg = rowT['Date of TEG Collection']
+                st.write("".join(["Risk based on data from ", str(date_teg), ":"]))
+                st.subheader("".join([str(round(prediction_TEG,2)), "%"]))
+                #st.write("TEG prediction(s) for patient")
+                #st.markdown(f"- Risk at {date_teg}: {round(prediction_TEG*1,2)}%")
+
+
+        st.markdown("---")
+        st.markdown("""In the following chart the dashed lines (--) represent
+                    the prediction from the Gen. & Comorbid. model and the solid lines with points (o-)
+                    are the predictions based on TEG values. The colors are grouped by *Record ID*. """)
+        fig_pred = plot_pred_cached(pred_TEG , pred_baseline) # This could be updated
+        st.plotly_chart(fig_pred)
+
+        st.subheader(":blue[Most influencial factors when calculating risk of thrombosis:]")
+        st.plotly_chart(fig_baseline)
+        st.plotly_chart(fig_TEG)
     
     
     

@@ -247,6 +247,8 @@ if uploaded_file is not None:
             best_model_TEG2, TEG2_train, TEG2_score, importance_df_TEG2= train_model_cached(model2_df, 'Events', ['Record ID', 'Visit Timepoint', "Date of TEG Collection"],quantile_ranges, param_grid, scoring)
 
         st.markdown("""---""")
+        st.subheader("Your new model has been generated! Here's some information about it:")
+        st.markdown("""---""")
         # Introduce new model
         st.subheader(":blue[Non-Collinear TEG Values Model:]")
         fig3 = plot_importance(importance_df_TEG2, "TEG 2 most influencial factors", showlegend=False)
@@ -296,7 +298,7 @@ if uploaded_file is not None:
         st.markdown("""
                     You will need this for the next page, where you can predict the risk of an individual patient.
                     
-                    Both models contain the bseline model.""")
+                    Both downloadables also contain the baseline model.""")
 
         href1 = download_cached(toDownload1,tegColumns1,"CLOTWATCH_predictive_model_1.pkl")
         href2 = download_cached(toDownload2,tegColumns2, "CLOTWATCH_predictive_model_2.pkl")
