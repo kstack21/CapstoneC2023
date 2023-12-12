@@ -39,14 +39,7 @@ def import_json_values_cached():
 boundaries = import_json_values_cached()
 
 @st.cache_data
-def input_data(uploaded_file,user_extend_data=False):
-    # Read the uploaded Excel file into a Pandas DataFrame
-    xls = pd.ExcelFile(uploaded_file, engine="openpyxl")
-    sheet_names = ['Baseline', 'TEG Values']  # Replace with your sheet names
-
-    # Access each sheet's data using the sheet name as the key
-    patientBaseline = pd.read_excel(xls, sheet_names[0])
-    patientTEG = pd.read_excel(xls, sheet_names[1])
+def input_data(patientBaseline,patientTEG,user_extend_data=False):
     
     # Save IDs
     baseline_id = patientBaseline["Record ID"]
@@ -119,25 +112,35 @@ if uploaded_model_file != None and uploaded_file == None :
     st.write("""**Note:** please be mindful of the demographics of the data used to train your predictive model.
             The more represented your patient is in the training data, the more reliable the prediction will be.""")
         
-    with st.expander("Model evaluation"):
-        if extend_data:
-            st.markdown("This TEG model has been trained avoiding collinear values.")
-        else:
-            st.markdown("This TEG model has been trained using all possible values, including some that might be collinear.")
-            
-            st.markdown("The data demographics of the data used to trained the models were:")
-            st.plotly_chart(data_fig, use_container_width=True)
+    if extend_data:
+        st.markdown("This TEG model has been trained avoiding collinear values.")
+    else:
+        st.markdown("This TEG model has been trained using all possible values, including some that might be collinear.")
+        
+        st.markdown("The data demographics of the data used to trained the models were:")
+        st.plotly_chart(data_fig, use_container_width=True)
 
-            st.markdown("Validity score")
-            scores_TEG = pd.DataFrame(scores_TEG, index=["TEG-based model 2 (Selected factors)"])
-            scores_baseline = pd.DataFrame(scores_baseline, index=["General info based model"])
-            st.table(pd.concat([scores_baseline, scores_TEG], sort=False))
+        st.markdown("Validity score")
+        scores_TEG = pd.DataFrame(scores_TEG, index=["TEG-based model 2 (Selected factors)"])
+        scores_baseline = pd.DataFrame(scores_baseline, index=["General info based model"])
+        st.table(pd.concat([scores_baseline, scores_TEG], sort=False))
 
 
 # Get patient data from uploaded file            
 elif uploaded_file != None :
+    try:
+        # Read the uploaded Excel file into a Pandas DataFrame
+        xls = pd.ExcelFile(uploaded_file, engine="openpyxl")
+        sheet_names = ['Baseline', 'TEG Values']  # Replace with your sheet names
 
-    patient_data, cleanPatientBaseline, cleanPatientTEG, tegValues, baseline_id, tegValues_id = input_data(uploaded_file)
+        # Access each sheet's data using the sheet name as the key
+        patientBaseline = pd.read_excel(xls, sheet_names[0])
+        patientTEG = pd.read_excel(xls, sheet_names[1])
+        
+    except:
+        st.error("The uploaded file does not conform to the required format. Specifically, it should include the pages labeled 'Baseline', and 'TEG Values'. ", icon="🚨")
+        
+    patient_data, _, _, _, _, _ = input_data(patientBaseline,patientTEG)
 
     # Patients info 
     st.subheader(':blue[Patients Uploaded:]')
@@ -176,7 +179,7 @@ elif uploaded_file != None :
             st.table(pd.concat([scores_baseline, scores_TEG], sort=False))
 
         # Reload patient data with extend_data
-        patient_data, cleanPatientBaseline, cleanPatientTEG, tegValues, baseline_id, tegValues_id = input_data(uploaded_file, extend_data)
+        patient_data, cleanPatientBaseline, cleanPatientTEG, tegValues, baseline_id, tegValues_id = input_data(patientBaseline,patientTEG, extend_data)
 
         # Calculate risk
         pred_TEG, fig_TEG = calculate_risk(cleanPatientTEG, column_TEG,model_TEG, tegValues_id, "Most influencial factors from TEG model")

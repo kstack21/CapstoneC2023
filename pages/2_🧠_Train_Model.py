@@ -61,16 +61,7 @@ def import_json_values_cached():
 boundaries, collinearity = import_json_values_cached()
 
 @st.cache_data
-def upoload_data_cached(uploaded_file):
-    # Read the uploaded Excel file into a Pandas DataFrame
-    xls = pd.ExcelFile(uploaded_file, engine="openpyxl")
-
-    sheet_names = ['Baseline', 'TEG Values', 'Events']
-
-    # Access each sheet's data using the sheet name as the key
-    baseline_df = pd.read_excel(xls, sheet_names[0])
-    tegValues_df = pd.read_excel(xls, sheet_names[1])
-    events_df = pd.read_excel(xls, sheet_names[2])
+def upoload_data_cached(baseline_df, tegValues_df, events_df):
 
     # Merge tables
     baseline_df, tegValues_df = merge_events_count(baseline_df, tegValues_df, events_df)
@@ -159,7 +150,20 @@ if uploaded_file is not None:
     st.subheader("Demographics of the Uploaded Dataset")
 
     # Load data
-    fig, clean_TEG_df, tegValues, clean_baseline_df = upoload_data_cached(uploaded_file)
+    try:
+        # Read the uploaded Excel file into a Pandas DataFrame
+        xls = pd.ExcelFile(uploaded_file, engine="openpyxl")
+
+        sheet_names = ['Baseline', 'TEG Values', 'Events']
+
+        # Access each sheet's data using the sheet name as the key
+        baseline_df = pd.read_excel(xls, sheet_names[0])
+        tegValues_df = pd.read_excel(xls, sheet_names[1])
+        events_df = pd.read_excel(xls, sheet_names[2])
+    except:
+        st.error("The uploaded file does not conform to the required format. Specifically, it should include the pages labeled 'Baseline', 'TEG Values', and 'Events'. ", icon="🚨")
+
+    fig, clean_TEG_df, tegValues, clean_baseline_df = upoload_data_cached(baseline_df, tegValues_df, events_df)
     
     # Show data description
     st.plotly_chart(fig, use_container_width=True)
