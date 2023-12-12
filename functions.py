@@ -162,7 +162,7 @@ def transform_data(baseline_df, tegValues_df, boundaries, training = True):
 
     # Change following columns to booleans
     columns_to_convert_baseline = ['White', 'Diabetes', 'Hypertension', 'Hyperlipidemia (choice=None)', 'Coronary Artery Disease', 'History of MI',
-                        'Functional impairment', 'Does Subject Currently have cancer?', 'Past hx of cancer', 'Hx of  DVT', 'Hx of stroke',
+                        'Functional impairment', 'Does Subject Currently have cancer?', 'Past hx of cancer', 'Hx of DVT', 'Hx of stroke',
                         'Hx of pulmonary embolism', 'Does the patient have a history of solid organ transplant?', 
                         'Has subject had previous intervention of the index limb?', 'Previous occluded stents',]
     columns_to_convert_TEG =['Cilostazol within 7 days']
@@ -815,3 +815,38 @@ def plot_pred(TEG_pred,baseline_pred):
     fig.add_trace(baseline_pred_line.data[0])
 
     return fig
+
+def check_columns(df, sheet):
+
+    if sheet == "baseline":
+        required_columns = [
+        'Record ID', 'Age', 'Sex', 'White', 'Extremity', 'Artery affected', 'BMI',
+        'Tobacco Use (1 current 2 former, 3 none)', 'Diabetes', 'Hypertension',
+        'Hyperlipidemia (choice=None)', 'Renal Status', 'Coronary Artery Disease',
+        'History of MI', 'Functional impairment', 'Clotting Disorder',
+        'Does Subject Currently have cancer?', 'Past hx of cancer', 'Hx of DVT',
+        'Hx of stroke', 'Hx of pulmonary embolism',
+        'Does the patient have a history of solid organ transplant?', 'EGFR (mL/min/1.73m2)',
+        'Has subject had previous intervention of the index limb?', 'Previous occluded stents',
+        'Rutherford Score', 'ABI Right', 'ABI left', 'Intervention Classification',
+        'Intervention Type']
+    
+    elif sheet == "teg":
+        required_columns = [
+        'Record ID', 'Visit Timepoint', 'Antiplatelet Therapy within 7 Days',
+        'Anticoagulation within 24 Hours', 'Statin within 24 Hours', 'Cilostazol within 7 days',
+        'Reaction Time (R) in min', 'Lysis at 30 min (LY30) in %', 'CRT Max amplitude (MA) in mm',
+        'CFF Max Amplitude( MA) in mm', 'HKH MA (mm)', 'ActF MA (mm)', 'ADP MA (mm)', 'AA MA(mm)',
+        'ADP % Aggregation', 'ADP % Inhibition', 'AA % Aggregation', 'AA % Inhibition',
+        'CK R(min)', 'CK K (min)', 'CK angle( deg)', 'CK MA (mm)', 'CRT MA(mm)', 'CKH R (min)',
+        'CFF MA(mm)', 'CFF FLEV(mg/dL)', 'HbA1c Baseline( within1 year of study start)',
+        'INR value', 'aPTT', 'PT value', 'WBC in K/uL', 'RBC (M/uL)', 'HGB(g/dL)', 'HCT %',
+        'PLT(K/uL)', 'BP prior to blood draw', 'Date of TEG Collection']
+
+    else: # Events
+        required_columns = ['Record ID'] 
+
+    # Check if all required columns are present
+    missing_columns = [col for col in required_columns if col not in df.columns]
+
+    return missing_columns

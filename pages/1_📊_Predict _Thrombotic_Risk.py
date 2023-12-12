@@ -139,6 +139,18 @@ elif uploaded_file != None :
         
     except:
         st.error("The uploaded file does not conform to the required format. Specifically, it should include the pages labeled 'Baseline', and 'TEG Values'. ", icon="🚨")
+        st.stop()
+
+    # Check if the file uploaded has the right columns
+    missing_columns = check_columns(patientBaseline, "baseline")
+    if missing_columns:
+        st.error(f"The following required columns are missing: {', '.join(missing_columns)} in the Baseline sheet", icon="🚨")
+        st.stop()
+    missing_columns = check_columns(patientTEG, "teg")
+    if missing_columns:
+        st.error(f"The following required columns are missing: {', '.join(missing_columns)} in the TEG Values sheet", icon="🚨")
+        st.stop()
+
         
     patient_data, _, _, _, _, _ = input_data(patientBaseline,patientTEG)
 

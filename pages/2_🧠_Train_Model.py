@@ -129,7 +129,9 @@ with st.sidebar:
     uploaded_file = st.file_uploader("Upload Data Set of Patient Data (XLSX)", type=["xlsx"])
 
     # Side bar:  Toggle user chooses to extend data
-    user_extend_data = st.toggle("Calculate rates", value=True, disabled= uploaded_file is not None)
+    user_extend_data = st.toggle("Calculate rates", value=True, disabled= uploaded_file is not None, help=""" This results in the 
+                                 generation of two additional variables for each TEG value: one indicating the 
+                                 "Difference since the last time point" and the other representing the "Rate since the last time point." """)
 
     # Advanced settings
     
@@ -162,6 +164,21 @@ if uploaded_file is not None:
         events_df = pd.read_excel(xls, sheet_names[2])
     except:
         st.error("The uploaded file does not conform to the required format. Specifically, it should include the pages labeled 'Baseline', 'TEG Values', and 'Events'. ", icon="🚨")
+        st.stop()
+
+    # Check if the file uploaded has the right columns
+    missing_columns = check_columns(baseline_df, "baseline")
+    if missing_columns:
+        st.error(f"The following required columns are missing: {', '.join(missing_columns)} in the Baseline sheet", icon="🚨")
+        st.stop()
+    missing_columns = check_columns(tegValues_df, "teg")
+    if missing_columns:
+        st.error(f"The following required columns are missing: {', '.join(missing_columns)} in the TEG Values sheet", icon="🚨")
+        st.stop()
+    missing_columns = check_columns(events_df, "events")
+    if missing_columns:
+        st.error(f"The following required columns are missing: {', '.join(missing_columns)} in the Events sheet", icon="🚨")
+        st.stop()
 
     fig, clean_TEG_df, tegValues, clean_baseline_df = upoload_data_cached(baseline_df, tegValues_df, events_df)
     
@@ -319,7 +336,10 @@ with st.sidebar:
     if advanced_settings:
 
          # Modify quantile ranges 
-        st.subheader("Robust scaling of target column:", help="[Why?](https://www.geeksforgeeks.org/standardscaler-minmaxscaler-and-robustscaler-techniques-ml/)")
+        st.subheader("Robust scaling of target column:", help=""" The model computes a risk score by summing up the current count of
+                      events for each patient and then normalizes the score to a range between 0 and 1. 
+                     This normalization is achieved using a Robust scaler, which takes into account the interquartile 
+                     range as defined below. [Why?](https://www.geeksforgeeks.org/standardscaler-minmaxscaler-and-robustscaler-techniques-ml/)""")
         qrc1, qrc2 = st.columns(2)
         with qrc1:
             new_min = st.number_input("Min Quantile:", min_value=float(0), value= float(quantile_ranges[0]))
@@ -334,7 +354,7 @@ with st.sidebar:
 
 
         # Modify hyper parameter tunning
-        st.subheader("Hyperparameter tunning:", help="[What are the options?](https://xgboost.readthedocs.io/en/stable/parameter.html#parameters-for-tree-booster)")
+        st.subheader("Hyperparameter tunning:", help="The choosen hyperparameters need to be in the same format as the ones below. [Click here to see more options](https://xgboost.readthedocs.io/en/stable/parameter.html#parameters-for-tree-booster)")
         new_param_grid = st.text_area("Enter Parameter Grid:", param_grid)
         try:
             # Attempt to parse the input as JSON
