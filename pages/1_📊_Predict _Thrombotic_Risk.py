@@ -39,14 +39,7 @@ def import_json_values_cached():
 boundaries = import_json_values_cached()
 
 @st.cache_data
-def input_data(uploaded_file,user_extend_data=False):
-    # Read the uploaded Excel file into a Pandas DataFrame
-    xls = pd.ExcelFile(uploaded_file, engine="openpyxl")
-    sheet_names = ['Baseline', 'TEG Values']  # Replace with your sheet names
-
-    # Access each sheet's data using the sheet name as the key
-    patientBaseline = pd.read_excel(xls, sheet_names[0])
-    patientTEG = pd.read_excel(xls, sheet_names[1])
+def input_data(patientBaseline,patientTEG,user_extend_data=False):
     
     # Save IDs
     baseline_id = patientBaseline["Record ID"]
@@ -82,7 +75,7 @@ def calculate_risk(df, column_names, _model, ids, plot_name):
     pred = predict(checked_df, _model,ids)
     
     #Plot
-    importance_df = iterate_importance(checked_df, _model, ids)
+    importance_df = iterate_importance(checked_df, _model)
     fig = plot_importance(importance_df ,plot_name)
 
     return pred, fig
@@ -119,28 +112,50 @@ if uploaded_model_file != None and uploaded_file == None :
     st.write("""**Note:** please be mindful of the demographics of the data used to train your predictive model.
             The more represented your patient is in the training data, the more reliable the prediction will be.""")
         
-    with st.expander("Model evaluation"):
-        if extend_data:
-            st.markdown("This TEG model has been trained avoiding collinear values.")
-        else:
-            st.markdown("This TEG model has been trained using all possible values, including some that might be collinear.")
-            
-            st.markdown("The data demographics of the data used to trained the models were:")
-            st.plotly_chart(data_fig, use_container_width=True)
+    if extend_data:
+        st.markdown("This TEG model has been trained avoiding collinear values.")
+    else:
+        st.markdown("This TEG model has been trained using all possible values, including some that might be collinear.")
+        
+    st.markdown("The data demographics of the data used to trained the models were:")
+    st.plotly_chart(data_fig, use_container_width=True)
 
-            st.markdown("Validity score")
-            scores_TEG = pd.DataFrame(scores_TEG, index=["TEG-based model 2 (Selected factors)"])
-            scores_baseline = pd.DataFrame(scores_baseline, index=["General info based model"])
-            st.table(pd.concat([scores_baseline, scores_TEG], sort=False))
+    st.markdown("Validity score")
+    scores_TEG = pd.DataFrame(scores_TEG, index=["TEG-based model 2 (Selected factors)"])
+    scores_baseline = pd.DataFrame(scores_baseline, index=["General info based model"])
+    st.table(pd.concat([scores_baseline, scores_TEG], sort=False))
 
 
 # Get patient data from uploaded file            
 elif uploaded_file != None :
+    try:
+        # Read the uploaded Excel file into a Pandas DataFrame
+        xls = pd.ExcelFile(uploaded_file, engine="openpyxl")
+        sheet_names = ['Baseline', 'TEG Values']  # Replace with your sheet names
 
-    patient_data, cleanPatientBaseline, cleanPatientTEG, tegValues, baseline_id, tegValues_id = input_data(uploaded_file)
+        # Access each sheet's data using the sheet name as the key
+        patientBaseline = pd.read_excel(xls, sheet_names[0])
+        patientTEG = pd.read_excel(xls, sheet_names[1])
+        
+    except:
+        st.error("The uploaded file does not conform to the required format. Specifically, it should include the pages labeled 'Baseline', and 'TEG Values'. ", icon="🚨")
+        st.stop()
+
+    # Check if the file uploaded has the right columns
+    missing_columns = check_columns(patientBaseline, "baseline")
+    if missing_columns:
+        st.error(f"The following required columns are missing: {', '.join(missing_columns)} in the Baseline sheet", icon="🚨")
+        st.stop()
+    missing_columns = check_columns(patientTEG, "teg")
+    if missing_columns:
+        st.error(f"The following required columns are missing: {', '.join(missing_columns)} in the TEG Values sheet", icon="🚨")
+        st.stop()
+
+        
+    patient_data, _, _, _, _, _ = input_data(patientBaseline,patientTEG)
 
     # Patients info 
-    st.subheader(':blue[Patients Uploaded:]')
+    st.header(':blue[Patients Uploaded:]')
     st.markdown("Please review if the information below is correct. The index of the table is the column called *Record ID*")
     st.table(patient_data)
 
@@ -175,8 +190,22 @@ elif uploaded_file != None :
             scores_baseline = pd.DataFrame(scores_baseline, index=["General info based model"])
             st.table(pd.concat([scores_baseline, scores_TEG], sort=False))
 
+        # Warn if user doesnt have enought records per TEG
+        if extend_data:
+            # Check if tegValues_df has at least 2 rows per "Record ID"
+            min_rows_required = 2
+            rows_per_record_id = patientTEG.groupby('Record ID').size()
+            missing_records = rows_per_record_id[rows_per_record_id < min_rows_required].index.tolist()
+
+            # If there are missing records, throw a Streamlit error
+            if missing_records:
+                error_message = f"""Insufficient TEG values for the following Record ID(s): {', '.join(map(str, missing_records))}. 
+                
+At least {min_rows_required} rows per Record ID are required to develop a reliable prediction when using a model that was trained using calculated rates."""
+                st.warning(error_message)
+
         # Reload patient data with extend_data
-        patient_data, cleanPatientBaseline, cleanPatientTEG, tegValues, baseline_id, tegValues_id = input_data(uploaded_file, extend_data)
+        patient_data, cleanPatientBaseline, cleanPatientTEG, tegValues, baseline_id, tegValues_id = input_data(patientBaseline,patientTEG, extend_data)
 
         # Calculate risk
         pred_TEG, fig_TEG = calculate_risk(cleanPatientTEG, column_TEG,model_TEG, tegValues_id, "Most influencial factors from TEG model")
@@ -185,52 +214,34 @@ elif uploaded_file != None :
         # Please change this, its going everwhere
         pred_TEG_todisp = pred_TEG.copy()
         pred_TEG_todisp['Date of TEG Collection'] = pd.to_datetime(pred_TEG['Date of TEG Collection']).dt.strftime('%Y-%m-%d')
-    # Select elements to display
-    # Select 'Record ID' using a Streamlit multiselect widget
-        #selected_record_ids = st.multiselect("Select Record IDs", merged_df['Record ID'].unique())
-        # Filter the DataFrame based on selected 'Record ID'
-        #filtered_df = merged_df[merged_df['Record ID'].isin(selected_record_ids)]
+   
 
         # display thrombosis risk
         st.markdown("""---""")
-        st.subheader(":blue[Patients' Calculated Risk of Thrombosis:]")
+        st.header(":blue[Patients' Calculated Risk of Thrombosis:]")
 
-
-        # Merge DataFrames on 'Record ID'
-        #merged_df = pd.merge(pred_baseline, pred_TEG, on='Record ID', how='outer')
-
-        # # Select 'Record ID' using a Streamlit multiselect widget
-        # selected_record_ids = st.multiselect("Select Record IDs", merged_df['Record ID'].unique())
-
-        # # Filter the DataFrame based on selected 'Record ID'
-        # filtered_df = merged_df[merged_df['Record ID'].isin(selected_record_ids)]
-        # pred_baseline_filtered_df = pred_baseline[pred_baseline['Record ID'].isin(selected_record_ids)]
-        # pred_TEG_filtered_df = pred_TEG[pred_TEG['Record ID'].isin(selected_record_ids)]
-        
-        # # Convert 'Date of TEG Collection' to string format
-        # filtered_df['Date of TEG Collection'] = pd.to_datetime(filtered_df['Date of TEG Collection']).dt.strftime('%Y-%m-%d')
-
-        # Display predictions as text # This needs to be fixed
+        # Display predictions for baseline 
+        st.subheader(":blue[Baseline-based prediction:]")
         for index, row in pred_baseline.iterrows():
-            record_id = row['Record ID'].astype(str)
+            record_id = row['Record ID']
             prediction_baseline = row['Prediction']
-            #st.write("".join([":blue[Baseline-based prediction] for patient ", str(record_id), ":"]))
-            st.write(":blue[Baseline-based prediction for patient:]")
+            
+            st.subheader(f"Patient: {record_id}")
             st.subheader("".join([str(round(prediction_baseline,2)), "%"]))
-            #st.markdown(f"""
-                        #The baseline risk for patient **{record_id}** is **{round(prediction_baseline*1,2)}%**
-                        
-                        #According to their TEG results:
-            #            """)
-
-            st.write(":blue[TEG-based prediction(s) for patient:]")
-            for indexT, rowT in pred_TEG_todisp.iterrows():
+            
+        # Dispay predictions for teg based
+        st.subheader(":blue[TEG-based prediction:]")
+        grouped_teg_pred = pred_TEG_todisp.groupby(["Record ID"])
+        for name, df_group in grouped_teg_pred:
+            st.subheader("Patient: {}".format(name[0]))
+            
+            for row_index, rowT in df_group.iterrows():
                 prediction_TEG = rowT['Prediction']
                 date_teg = rowT['Date of TEG Collection']
+                
                 st.write("".join(["Risk based on data from ", str(date_teg), ":"]))
                 st.subheader("".join([str(round(prediction_TEG,2)), "%"]))
-                #st.write("TEG prediction(s) for patient")
-                #st.markdown(f"- Risk at {date_teg}: {round(prediction_TEG*1,2)}%")
+                
 
 
         st.markdown("---")

@@ -61,16 +61,7 @@ def import_json_values_cached():
 boundaries, collinearity = import_json_values_cached()
 
 @st.cache_data
-def upoload_data_cached(uploaded_file):
-    # Read the uploaded Excel file into a Pandas DataFrame
-    xls = pd.ExcelFile(uploaded_file, engine="openpyxl")
-
-    sheet_names = ['Baseline', 'TEG Values', 'Events']
-
-    # Access each sheet's data using the sheet name as the key
-    baseline_df = pd.read_excel(xls, sheet_names[0])
-    tegValues_df = pd.read_excel(xls, sheet_names[1])
-    events_df = pd.read_excel(xls, sheet_names[2])
+def upoload_data_cached(baseline_df, tegValues_df, events_df):
 
     # Merge tables
     baseline_df, tegValues_df = merge_events_count(baseline_df, tegValues_df, events_df)
@@ -138,7 +129,9 @@ with st.sidebar:
     uploaded_file = st.file_uploader("Upload Data Set of Patient Data (XLSX)", type=["xlsx"])
 
     # Side bar:  Toggle user chooses to extend data
-    user_extend_data = st.toggle("Calculate rates", value=True, disabled= uploaded_file is not None)
+    user_extend_data = st.toggle("Calculate rates", value=True, disabled= uploaded_file is not None, help=""" This results in the 
+                                 generation of two additional variables for each TEG value: one indicating the 
+                                 "Difference since the last time point" and the other representing the "Rate since the last time point." """)
 
     # Advanced settings
     
@@ -159,7 +152,35 @@ if uploaded_file is not None:
     st.subheader("Demographics of the Uploaded Dataset")
 
     # Load data
-    fig, clean_TEG_df, tegValues, clean_baseline_df = upoload_data_cached(uploaded_file)
+    try:
+        # Read the uploaded Excel file into a Pandas DataFrame
+        xls = pd.ExcelFile(uploaded_file, engine="openpyxl")
+
+        sheet_names = ['Baseline', 'TEG Values', 'Events']
+
+        # Access each sheet's data using the sheet name as the key
+        baseline_df = pd.read_excel(xls, sheet_names[0])
+        tegValues_df = pd.read_excel(xls, sheet_names[1])
+        events_df = pd.read_excel(xls, sheet_names[2])
+    except:
+        st.error("The uploaded file does not conform to the required format. Specifically, it should include the pages labeled 'Baseline', 'TEG Values', and 'Events'. ", icon="🚨")
+        st.stop()
+
+    # Check if the file uploaded has the right columns
+    missing_columns = check_columns(baseline_df, "baseline")
+    if missing_columns:
+        st.error(f"The following required columns are missing: {', '.join(missing_columns)} in the Baseline sheet", icon="🚨")
+        st.stop()
+    missing_columns = check_columns(tegValues_df, "teg")
+    if missing_columns:
+        st.error(f"The following required columns are missing: {', '.join(missing_columns)} in the TEG Values sheet", icon="🚨")
+        st.stop()
+    missing_columns = check_columns(events_df, "events")
+    if missing_columns:
+        st.error(f"The following required columns are missing: {', '.join(missing_columns)} in the Events sheet", icon="🚨")
+        st.stop()
+
+    fig, clean_TEG_df, tegValues, clean_baseline_df = upoload_data_cached(baseline_df, tegValues_df, events_df)
     
     # Show data description
     st.plotly_chart(fig, use_container_width=True)
@@ -198,7 +219,35 @@ if uploaded_file is not None:
     # User selects non collinear parameters
 
     st.subheader("Please select one parameter from each of the following groups")
-    st.markdown("These groups of factors are related. If you have a preference for which ones are used to train the model, please choose them below. Otherwise, you can leave them as their default values. The reason this is necessary is because factors that are related can create a biased model.")
+    st.markdown("""These groups of factors are related. If you have a preference for 
+                which ones are used to train the model, please choose them below. Otherwise, 
+                you can leave them as their default values. The reason this is necessary is 
+                because factors that are related can create a biased model.""", help="""
+
+Clot treatment drugs: This group represents parameters related to the MA values from TEG 
+tests that provide information regarding a certain drugs effect on the blood. 
+HKH TEG represents heparin treated blood, ActF TEG represents activator F treated blood, 
+and ADP MA represents adenosine di-phosphate treated blood .
+                
+Effects of fibrogen: These values are related to effect fibrinogen has on clot strength. 
+ActF MA represents clot strength for activator F treated blood, while CFF MA 
+represents the clot strength based on the contribution of fibrinogen for blood 
+samples not given any drug, while CFF FLEV is a measurement of functional fibrinogen 
+done automatically by TEG machines that is dependent on the value of CFF FLEV.
+                
+Unaltered blood: These values refer to the cloth strength of samples that have not been treated with any drug prior.
+                
+Unaltered time to clot : These values represent the time till initiation of clot formation for 
+blood samples that were not treated with any coagulants or anti-coagulants prior.
+                
+ADP: factors regarding the effect of Adenosine di-phosphate on platelet activity.
+ADP\% inhibition represents the \% of platelets that do not activate. ADP\% aggregation represents the 
+\% of platelets that activate. These two percents should always add to 100.
+
+AA: factors regarding the effect of Aspirin on platelet activity. AA\% inhibition represents 
+the \% of platelets that do not activate. AA\% aggregation represents the \% of platelets that 
+activate. These two values should always add to 100.
+                """)
 
     # Create empty dictionary to hold selection
     selected_features = {}
@@ -315,7 +364,10 @@ with st.sidebar:
     if advanced_settings:
 
          # Modify quantile ranges 
-        st.subheader("Robust scaling of target column:", help="[Why?](https://www.geeksforgeeks.org/standardscaler-minmaxscaler-and-robustscaler-techniques-ml/)")
+        st.subheader("Robust scaling of target column:", help=""" The model computes a risk score by summing up the current count of
+                      events for each patient and then normalizes the score to a range between 0 and 1. 
+                     This normalization is achieved using a Robust scaler, which takes into account the interquartile 
+                     range as defined below. [Why?](https://www.geeksforgeeks.org/standardscaler-minmaxscaler-and-robustscaler-techniques-ml/)""")
         qrc1, qrc2 = st.columns(2)
         with qrc1:
             new_min = st.number_input("Min Quantile:", min_value=float(0), value= float(quantile_ranges[0]))
@@ -330,7 +382,7 @@ with st.sidebar:
 
 
         # Modify hyper parameter tunning
-        st.subheader("Hyperparameter tunning:", help="[What are the options?](https://xgboost.readthedocs.io/en/stable/parameter.html#parameters-for-tree-booster)")
+        st.subheader("Hyperparameter tunning:", help="The choosen hyperparameters need to be in the same format as the ones below. [Click here to see more options](https://xgboost.readthedocs.io/en/stable/parameter.html#parameters-for-tree-booster)")
         new_param_grid = st.text_area("Enter Parameter Grid:", param_grid)
         try:
             # Attempt to parse the input as JSON

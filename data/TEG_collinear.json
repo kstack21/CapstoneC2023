@@ -11,13 +11,13 @@
         "CFF FLEV(mg/dL)",
         "CFF Max Amplitude( MA) in mm"
     ],
-    "Unaltered blood ":
+    "Unaltered blood":
     [
         "CRT MA(mm)", 
         "CRT Max amplitude (MA) in mm",
         "CK MA (mm)"
     ],
-    "Unaltered time to clot ":
+    "Unaltered time to clot":
     [
         "CK R(min)", 
         "CKH R (min)"

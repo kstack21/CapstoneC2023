@@ -162,7 +162,7 @@ def transform_data(baseline_df, tegValues_df, boundaries, training = True):
 
     # Change following columns to booleans
     columns_to_convert_baseline = ['White', 'Diabetes', 'Hypertension', 'Hyperlipidemia (choice=None)', 'Coronary Artery Disease', 'History of MI',
-                        'Functional impairment', 'Does Subject Currently have cancer?', 'Past hx of cancer', 'Hx of  DVT', 'Hx of stroke',
+                        'Functional impairment', 'Does Subject Currently have cancer?', 'Past hx of cancer', 'Hx of DVT', 'Hx of stroke',
                         'Hx of pulmonary embolism', 'Does the patient have a history of solid organ transplant?', 
                         'Has subject had previous intervention of the index limb?', 'Previous occluded stents',]
     columns_to_convert_TEG =['Cilostazol within 7 days']
@@ -732,7 +732,7 @@ def predict(df, best_pipeline, id_s):
     
     return id_pred_df  
 
-def iterate_importance(df, best_pipeline, ids):
+def iterate_importance(df, best_pipeline):
 
     # Create a list of strings with the format "patient {record id}" or "patient {record id}: {date}"
     string_list = []
@@ -808,10 +808,59 @@ def plot_pred(TEG_pred,baseline_pred):
     smallest_value = TEG_pred['Date of TEG Collection'].min()
     largest_value = TEG_pred['Date of TEG Collection'].max()
 
+    # Create a new DataFrame with two values for each Record ID
+    new_df = pd.DataFrame(columns=['Record ID', 'Date of TEG Collection'])
+
+    for record_id in baseline_pred['Record ID'].unique():
+        new_row = {'Record ID': [record_id,record_id], 'Date of TEG Collection': [smallest_value, largest_value]}
+        new_df = pd.concat([new_df, pd.DataFrame(new_row)], ignore_index=True)
+
+    # Merge new_df with baseline_pred to get the corresponding Prediction values
+    merged_df = pd.merge(new_df, baseline_pred, on=['Record ID'], how='left')
+
     # Plotly Express Line Plot for baseline_pred
-    double_baseline_pred = pd.concat([baseline_pred, baseline_pred])
-    baseline_pred_line = px.line(double_baseline_pred, x=[smallest_value,largest_value] * len(baseline_pred), y='Prediction', line_group='Record ID')
-    baseline_pred_line.update_traces(mode='lines', line_dash='dash', name='Baseline')
-    fig.add_trace(baseline_pred_line.data[0])
+    baseline_pred_line = px.line(merged_df, x='Date of TEG Collection', y='Prediction', color='Record ID')
+
+    baseline_pred_line.update_traces(mode='lines', line_dash='dash')
+    n = 0
+    for record_id in baseline_pred['Record ID'].unique():
+        baseline_pred_line.update_traces(name=f'{record_id} baseline')
+        fig.add_trace(baseline_pred_line.data[n])
+        n+=1
 
     return fig
+
+def check_columns(df, sheet):
+
+    if sheet == "baseline":
+        required_columns = [
+        'Record ID', 'Age', 'Sex', 'White', 'Extremity', 'Artery affected', 'BMI',
+        'Tobacco Use (1 current 2 former, 3 none)', 'Diabetes', 'Hypertension',
+        'Hyperlipidemia (choice=None)', 'Renal Status', 'Coronary Artery Disease',
+        'History of MI', 'Functional impairment', 'Clotting Disorder',
+        'Does Subject Currently have cancer?', 'Past hx of cancer', 'Hx of DVT',
+        'Hx of stroke', 'Hx of pulmonary embolism',
+        'Does the patient have a history of solid organ transplant?', 'EGFR (mL/min/1.73m2)',
+        'Has subject had previous intervention of the index limb?', 'Previous occluded stents',
+        'Rutherford Score', 'ABI Right', 'ABI left', 'Intervention Classification',
+        'Intervention Type']
+    
+    elif sheet == "teg":
+        required_columns = [
+        'Record ID', 'Visit Timepoint', 'Antiplatelet Therapy within 7 Days',
+        'Anticoagulation within 24 Hours', 'Statin within 24 Hours', 'Cilostazol within 7 days',
+        'Reaction Time (R) in min', 'Lysis at 30 min (LY30) in %', 'CRT Max amplitude (MA) in mm',
+        'CFF Max Amplitude( MA) in mm', 'HKH MA (mm)', 'ActF MA (mm)', 'ADP MA (mm)', 'AA MA(mm)',
+        'ADP % Aggregation', 'ADP % Inhibition', 'AA % Aggregation', 'AA % Inhibition',
+        'CK R(min)', 'CK K (min)', 'CK angle( deg)', 'CK MA (mm)', 'CRT MA(mm)', 'CKH R (min)',
+        'CFF MA(mm)', 'CFF FLEV(mg/dL)', 'HbA1c Baseline( within1 year of study start)',
+        'INR value', 'aPTT', 'PT value', 'WBC in K/uL', 'RBC (M/uL)', 'HGB(g/dL)', 'HCT %',
+        'PLT(K/uL)', 'BP prior to blood draw', 'Date of TEG Collection']
+
+    else: # Events
+        required_columns = ['Record ID'] 
+
+    # Check if all required columns are present
+    missing_columns = [col for col in required_columns if col not in df.columns]
+
+    return missing_columns
