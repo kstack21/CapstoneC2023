@@ -223,30 +223,30 @@ if uploaded_file is not None:
                 which ones are used to train the model, please choose them below. Otherwise, 
                 you can leave them as their default values. The reason this is necessary is 
                 because factors that are related can create a biased model.""", help="""
-                Clot treatment drugs: This group represents parameters related to the MA values from TEG 
-                tests that provide information regarding a certain drugs effect on the blood. 
-                HKH TEG represents heparin treated blood, ActF TEG represents activator F treated blood, 
-                and ADP MA represents adenosine di-phosphate treated blood .
-                
-                Effects of fibrogen: These values are related to effect fibrinogen has on clot strength. 
-                ActF MA represents clot strength for activator F treated blood, while CFF MA 
-                represents the clot strength based on the contribution of fibrinogen for blood 
-                samples not given any drug, while CFF FLEV is a measurement of functional fibrinogen 
-                done automatically by TEG machines that is dependent on the value of CFF FLEV.
-                
-                Unaltered blood: These values refer to the cloth strength of samples that have not been treated 
-                with any drug prior.
-                
-                Unaltered time to clot : These values represent the time till initiation of clot formation for 
-                blood samples that were not treated with any coagulants or anti-coagulants prior.
-                
-                ADP: factors regarding the effect of Adenosine di-phosphate on platelet activity.
-                ADP\% inhibition represents the \% of platelets that do not activate. ADP\% aggregation represents the 
-                \% of platelets that activate. These two percents should always add to 100.
 
-                AA: factors regarding the effect of Aspirin on platelet activity. AA\% inhibition represents 
-                the \% of platelets that do not activate. AA\% aggregation represents the \% of platelets that 
-                activate. These two values should always add to 100.
+Clot treatment drugs: This group represents parameters related to the MA values from TEG 
+tests that provide information regarding a certain drugs effect on the blood. 
+HKH TEG represents heparin treated blood, ActF TEG represents activator F treated blood, 
+and ADP MA represents adenosine di-phosphate treated blood .
+                
+Effects of fibrogen: These values are related to effect fibrinogen has on clot strength. 
+ActF MA represents clot strength for activator F treated blood, while CFF MA 
+represents the clot strength based on the contribution of fibrinogen for blood 
+samples not given any drug, while CFF FLEV is a measurement of functional fibrinogen 
+done automatically by TEG machines that is dependent on the value of CFF FLEV.
+                
+Unaltered blood: These values refer to the cloth strength of samples that have not been treated with any drug prior.
+                
+Unaltered time to clot : These values represent the time till initiation of clot formation for 
+blood samples that were not treated with any coagulants or anti-coagulants prior.
+                
+ADP: factors regarding the effect of Adenosine di-phosphate on platelet activity.
+ADP\% inhibition represents the \% of platelets that do not activate. ADP\% aggregation represents the 
+\% of platelets that activate. These two percents should always add to 100.
+
+AA: factors regarding the effect of Aspirin on platelet activity. AA\% inhibition represents 
+the \% of platelets that do not activate. AA\% aggregation represents the \% of platelets that 
+activate. These two values should always add to 100.
                 """)
 
     # Create empty dictionary to hold selection
