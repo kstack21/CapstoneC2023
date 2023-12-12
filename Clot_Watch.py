@@ -111,7 +111,9 @@ st.write("""
 
 st.markdown("""---""")
 
-st.write("Download the template file here to get started! The first line is filled in with example data; please follow its format and delete it when you have finished entering your data.")
+st.write("""Download the template file here to get started! The first line is filled in with example data; 
+         please follow its format and delete it when you have finished entering your data.
+         The column of Tobacco Use and Renal Status contain all the acceptable value, please stick to them.""")
 # data entry template download
 base_directory = os.getcwd()
 filename = 'HeadersTemplate.xlsx'
