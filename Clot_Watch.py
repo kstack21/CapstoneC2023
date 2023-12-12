@@ -19,8 +19,11 @@ st.set_page_config(
     page_title="CLØT WATCH",
     page_icon="🏥",
 )
-
-st.image("CLOTWATCH_logo.png", width=500)
+title1 , title2 = st.columns([1,5])
+with title1:
+    st.image("CLOTWATCH_logo.png", width= 100)
+with title2:
+    st.title("Clot Watch")
 
 st.markdown("""---""")
 st.markdown(
