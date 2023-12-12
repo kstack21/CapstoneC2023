@@ -190,6 +190,20 @@ elif uploaded_file != None :
             scores_baseline = pd.DataFrame(scores_baseline, index=["General info based model"])
             st.table(pd.concat([scores_baseline, scores_TEG], sort=False))
 
+        # Warn if user doesnt have enought records per TEG
+        if extend_data:
+            # Check if tegValues_df has at least 2 rows per "Record ID"
+            min_rows_required = 2
+            rows_per_record_id = patientTEG.groupby('Record ID').size()
+            missing_records = rows_per_record_id[rows_per_record_id < min_rows_required].index.tolist()
+
+            # If there are missing records, throw a Streamlit error
+            if missing_records:
+                error_message = f"""Insufficient TEG values for the following Record ID(s): {', '.join(map(str, missing_records))}. 
+                
+At least {min_rows_required} rows per Record ID are required to develop a reliable prediction when using a model that was trained using calculated rates."""
+                st.warning(error_message)
+
         # Reload patient data with extend_data
         patient_data, cleanPatientBaseline, cleanPatientTEG, tegValues, baseline_id, tegValues_id = input_data(patientBaseline,patientTEG, extend_data)
 
