@@ -732,7 +732,7 @@ def predict(df, best_pipeline, id_s):
     
     return id_pred_df  
 
-def iterate_importance(df, best_pipeline, ids):
+def iterate_importance(df, best_pipeline):
 
     # Create a list of strings with the format "patient {record id}" or "patient {record id}: {date}"
     string_list = []
@@ -808,11 +808,25 @@ def plot_pred(TEG_pred,baseline_pred):
     smallest_value = TEG_pred['Date of TEG Collection'].min()
     largest_value = TEG_pred['Date of TEG Collection'].max()
 
+    # Create a new DataFrame with two values for each Record ID
+    new_df = pd.DataFrame(columns=['Record ID', 'Date of TEG Collection'])
+
+    for record_id in baseline_pred['Record ID'].unique():
+        new_row = {'Record ID': [record_id,record_id], 'Date of TEG Collection': [smallest_value, largest_value]}
+        new_df = pd.concat([new_df, pd.DataFrame(new_row)], ignore_index=True)
+
+    # Merge new_df with baseline_pred to get the corresponding Prediction values
+    merged_df = pd.merge(new_df, baseline_pred, on=['Record ID'], how='left')
+
     # Plotly Express Line Plot for baseline_pred
-    double_baseline_pred = pd.concat([baseline_pred, baseline_pred])
-    baseline_pred_line = px.line(double_baseline_pred, x=[smallest_value,largest_value] * len(baseline_pred), y='Prediction', line_group='Record ID')
-    baseline_pred_line.update_traces(mode='lines', line_dash='dash', name='Baseline')
-    fig.add_trace(baseline_pred_line.data[0])
+    baseline_pred_line = px.line(merged_df, x='Date of TEG Collection', y='Prediction', color='Record ID')
+
+    baseline_pred_line.update_traces(mode='lines', line_dash='dash')
+    n = 0
+    for record_id in baseline_pred['Record ID'].unique():
+        baseline_pred_line.update_traces(name=f'{record_id} baseline')
+        fig.add_trace(baseline_pred_line.data[n])
+        n+=1
 
     return fig
 
